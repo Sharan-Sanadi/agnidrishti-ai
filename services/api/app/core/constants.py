@@ -87,3 +87,43 @@ LNG_MAX = 180.0
 # GeoJSON coordinates: [longitude, latitude] — NOT [lat, lng]
 # This is a critical convention. Document prominently.
 GEOJSON_COORDINATE_ORDER = "GeoJSON uses [longitude, latitude] — NOT [latitude, longitude]"
+
+# ==============================
+# NASA FIRMS CONSTANTS & SENSORS
+# ==============================
+
+class FIRMSSensor(StrEnum):
+    """Supported NASA FIRMS satellite/sensor products."""
+    VIIRS_NOAA20_NRT = "VIIRS_NOAA20_NRT"
+    VIIRS_NOAA21_NRT = "VIIRS_NOAA21_NRT"
+    VIIRS_SNPP_NRT = "VIIRS_SNPP_NRT"  # Kept optional; under NASA data-quality advisory
+
+# Default primary sensors for Phase 1
+DEFAULT_FIRMS_SENSORS = [
+    FIRMSSensor.VIIRS_NOAA20_NRT,
+    FIRMSSensor.VIIRS_NOAA21_NRT,
+]
+
+# India Operational Bounding Box (West, South, East, North)
+# Covers mainland India + coastal waters
+INDIA_DEFAULT_BBOX = (68.0, 6.5, 97.5, 37.5)
+
+# Maximum supported day range by NASA FIRMS Area API
+FIRMS_MIN_DAY_RANGE = 1
+FIRMS_MAX_DAY_RANGE = 5
+
+# ==============================
+# FIRMS ERROR CODES
+# ==============================
+
+class FIRMSErrorCode(StrEnum):
+    """Structured error codes for FIRMS ingestion."""
+    MISSING_FIRMS_KEY = "MISSING_FIRMS_KEY"
+    INVALID_BOUNDING_BOX = "INVALID_BOUNDING_BOX"
+    INVALID_DAY_RANGE = "INVALID_DAY_RANGE"
+    UNSUPPORTED_SOURCE = "UNSUPPORTED_SOURCE"
+    FIRMS_AUTH_ERROR = "FIRMS_AUTH_ERROR"
+    FIRMS_RATE_LIMITED = "FIRMS_RATE_LIMITED"
+    FIRMS_TIMEOUT = "FIRMS_TIMEOUT"
+    FIRMS_UPSTREAM_ERROR = "FIRMS_UPSTREAM_ERROR"
+    FIRMS_MALFORMED_RESPONSE = "FIRMS_MALFORMED_RESPONSE"

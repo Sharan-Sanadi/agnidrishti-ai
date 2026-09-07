@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl.replace(/\/$/, '')}/api/v1`;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -9,6 +10,51 @@ export const apiClient = axios.create({
   },
 });
 
+export interface ThermalObservation {
+  id: string;
+  latitude: number;
+  longitude: number;
+  acquisition_time_utc: string;
+  satellite: string;
+  instrument: string;
+  source: string;
+  confidence: string;
+  frp?: number | null;
+  bright_ti4?: number | null;
+  bright_ti5?: number | null;
+  scan?: number | null;
+  track?: number | null;
+  daynight?: string | null;
+  firms_version?: string | null;
+  ingestion_time_utc: string;
+  geojson?: {
+    type: string;
+    coordinates: [number, number]; // [longitude, latitude]
+  };
+}
+
+export interface FIRMSHotspotsResponse {
+  mode: string;
+  provider: string;
+  sources: string[];
+  requested_bbox: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  };
+  day_range: number;
+  requested_date?: string | null;
+  fetched_at: string;
+  data_status: 'fresh' | 'stale';
+  count: number;
+  rejected_count: number;
+  partial: boolean;
+  successful_sources: string[];
+  failed_sources: string[];
+  observations: ThermalObservation[];
+}
+
 export interface Hotspot {
   id: string;
   latitude: number;
@@ -16,14 +62,20 @@ export interface Hotspot {
   acquired_at: string;
   source: string;
   satellite?: string;
-  frp_mw: number;
-  brightness_ti4: number;
-  brightness_ti5: number;
+  instrument?: string;
+  frp_mw?: number | null;
+  brightness_ti4?: number | null;
+  brightness_ti5?: number | null;
   confidence: string;
-  day_night: string;
+  day_night?: string | null;
+  scan?: number | null;
+  track?: number | null;
+  firms_version?: string | null;
+  ingestion_time_utc?: string;
   risk?: string;
   persistent?: boolean;
   classification?: string;
+  is_live_firms?: boolean;
 }
 
 export interface HotspotListResponse {
@@ -76,6 +128,22 @@ export interface AnalysisResponse {
 export const api = {
   async getHotspots(): Promise<HotspotListResponse> {
     const response = await apiClient.get<HotspotListResponse>('/hotspots');
+    return response.data;
+  },
+
+  async getFIRMSHotspots(params?: {
+    west?: number;
+    south?: number;
+    east?: number;
+    north?: number;
+    days?: number;
+    sources?: string;
+    date?: string;
+    force_refresh?: boolean;
+  }): Promise<FIRMSHotspotsResponse> {
+    const response = await apiClient.get<FIRMSHotspotsResponse>('/firms/hotspots', {
+      params,
+    });
     return response.data;
   },
 

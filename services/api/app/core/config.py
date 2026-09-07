@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     """Application configuration loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env", "../../.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -33,6 +33,16 @@ class Settings(BaseSettings):
 
     # ─── NASA FIRMS ───
     firms_map_key: str = ""
+    nasa_firms_map_key: str = ""
+    nasa_firms_base_url: str = "https://firms.modaps.eosdis.nasa.gov"
+    nasa_firms_default_day_range: int = 1
+    nasa_firms_timeout_seconds: float = 20.0
+    nasa_firms_cache_ttl_seconds: int = 600
+
+    @property
+    def effective_firms_map_key(self) -> str:
+        """Resolve FIRMS map key from either NASA_FIRMS_MAP_KEY or FIRMS_MAP_KEY."""
+        return (self.nasa_firms_map_key or self.firms_map_key).strip()
 
     # ─── OSM / Overpass ───
     overpass_api_url: str = "https://overpass-api.de/api/interpreter"
@@ -51,7 +61,7 @@ class Settings(BaseSettings):
 
     @property
     def is_firms_configured(self) -> bool:
-        return bool(self.firms_map_key)
+        return bool(self.effective_firms_map_key)
 
     @property
     def is_earth_engine_configured(self) -> bool:
