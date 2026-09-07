@@ -1,0 +1,61 @@
+# ==============================
+# AGNIDRISHTI .gitignore
+# ==============================
+
+# ─── Environment & Secrets ───
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ─── Node / Frontend ───
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+
+# ─── Python / Backend ───
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+.uv/
+*.egg
+
+# ─── IDE ───
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Testing ───
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ─── Data (large raw datasets excluded, fixtures kept) ───
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# ─── Logs ───
+*.log
+logs/
+
+# ─── Generated ───
+packages/contracts/generated/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini

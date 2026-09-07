@@ -1,0 +1,20 @@
+{
+  "name": "agnidrishti",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AGNIDRISHTI — AI-enabled geospatial industrial fire and persistent thermal-source detection, classification and monitoring (SIH26162)",
+  "scripts": {
+    "dev:web": "pnpm --filter @agnidrishti/web dev",
+    "dev:api": "cd services/api && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "build:web": "pnpm --filter @agnidrishti/web build",
+    "lint:web": "pnpm --filter @agnidrishti/web lint",
+    "lint:api": "cd services/api && uv run ruff check .",
+    "test:api": "cd services/api && uv run pytest -v",
+    "lint": "pnpm lint:web",
+    "contracts:generate": "pnpm --filter @agnidrishti/contracts generate"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}
