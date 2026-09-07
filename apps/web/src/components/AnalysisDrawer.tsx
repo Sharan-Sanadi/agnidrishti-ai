@@ -15,7 +15,7 @@ export function AnalysisDrawer({ hotspot, analysis, loading, onClose }: Analysis
     <div className="absolute top-0 right-0 h-full w-96 bg-white shadow-2xl z-[1000] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-800">AGNIDRISHTI ANALYSIS</h2>
+        <h2 className="text-lg font-semibold text-gray-800">AGNIDRISHTI MOCK ANALYSIS</h2>
         <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full transition-colors">
           <X size={20} className="text-gray-500" />
         </button>

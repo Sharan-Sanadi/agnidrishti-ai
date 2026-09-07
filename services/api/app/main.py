@@ -18,8 +18,8 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     description="AI-enabled geospatial industrial thermal intelligence API",
-    docs_url="/api/docs",
-    openapi_url="/api/openapi.json",
+    docs_url="/docs",
+    openapi_url="/openapi.json",
 )
 
 # CORS setup

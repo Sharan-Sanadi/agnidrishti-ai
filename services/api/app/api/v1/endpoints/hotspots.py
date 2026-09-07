@@ -9,7 +9,8 @@ from app.schemas.hotspot import HotspotListResponse, HotspotRead
 
 router = APIRouter()
 
-FIXTURES_PATH = Path(__file__).parent.parent.parent.parent.parent / "data" / "fixtures" / "hotspots.json"
+# Path to root: endpoints -> v1 -> api -> app -> api -> services -> root
+FIXTURES_PATH = Path(__file__).resolve().parent.parent.parent.parent.parent.parent.parent / "data" / "fixtures" / "hotspots.json"
 
 def load_fixtures() -> list[dict]:
     if not FIXTURES_PATH.exists():

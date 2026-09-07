@@ -11,6 +11,9 @@
     "brightness_ti5": 290.1,
     "confidence": "nominal",
     "day_night": "D",
+    "risk": "high",
+    "persistent": true,
+    "classification": "industrial",
     "metadata": {
       "context": "Industrial-like context for UI development"
     },
@@ -31,6 +34,9 @@
     "brightness_ti5": 295.4,
     "confidence": "low",
     "day_night": "D",
+    "risk": "low",
+    "persistent": false,
+    "classification": "agricultural",
     "metadata": {
       "context": "Agricultural-like context for UI development"
     },
@@ -51,6 +57,9 @@
     "brightness_ti5": 298.0,
     "confidence": "high",
     "day_night": "D",
+    "risk": "medium",
+    "persistent": true,
+    "classification": "forest_fire",
     "metadata": {
       "context": "Natural/forest-like context for UI development"
     },

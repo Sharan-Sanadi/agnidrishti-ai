@@ -21,6 +21,9 @@ export interface Hotspot {
   brightness_ti5: number;
   confidence: string;
   day_night: string;
+  risk?: string;
+  persistent?: boolean;
+  classification?: string;
 }
 
 export interface HotspotListResponse {

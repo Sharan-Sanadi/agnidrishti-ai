@@ -2,9 +2,12 @@ import { Flame, AlertTriangle, Factory, ShieldAlert } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
+  industrial: number;
+  persistent: number;
+  highRisk: number;
 }
 
-export function StatsCards({ total }: StatsCardsProps) {
+export function StatsCards({ total, industrial, persistent, highRisk }: StatsCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 z-10 w-full">
       <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex items-center gap-4">
@@ -23,7 +26,7 @@ export function StatsCards({ total }: StatsCardsProps) {
         </div>
         <div>
           <p className="text-sm text-gray-500 font-medium">Probable Industrial</p>
-          <p className="text-2xl font-bold text-gray-900">-</p>
+          <p className="text-2xl font-bold text-gray-900">{industrial}</p>
         </div>
       </div>
 
@@ -33,7 +36,7 @@ export function StatsCards({ total }: StatsCardsProps) {
         </div>
         <div>
           <p className="text-sm text-gray-500 font-medium">Persistent Sources</p>
-          <p className="text-2xl font-bold text-gray-900">-</p>
+          <p className="text-2xl font-bold text-gray-900">{persistent}</p>
         </div>
       </div>
 
@@ -43,7 +46,7 @@ export function StatsCards({ total }: StatsCardsProps) {
         </div>
         <div>
           <p className="text-sm text-gray-500 font-medium">High Risk</p>
-          <p className="text-2xl font-bold text-gray-900">-</p>
+          <p className="text-2xl font-bold text-gray-900">{highRisk}</p>
         </div>
       </div>
     </div>

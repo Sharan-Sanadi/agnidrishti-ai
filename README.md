@@ -1,459 +1,137 @@
-# 🔥 Agnidrishti — SIH26162
+<div align="center">
+  
+# 🔥 Agnidrishti (अग्निदृष्टि)
+**AI-Enabled Geospatial Thermal Intelligence & Monitoring System**
 
-> **Status:** 🚧 Under Construction — Active Development  
-> **Current Milestone:** Phase 0 implemented; final local UI smoke verification still pending  
-> **Next Major Phase:** Phase 1 — NASA FIRMS Thermal Hotspot Ingestion
+[![Status](https://img.shields.io/badge/Status-Under%20Construction-orange.svg)](#)
+[![Phase](https://img.shields.io/badge/Current%20Phase-Phase%200%20(Foundation)-success.svg)](#)
+[![SIH](https://img.shields.io/badge/SIH-26162-blue.svg)](#)
+[![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](#)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](#)
 
-Agnidrishti is an AI-enabled geospatial thermal-intelligence prototype being built for **Smart India Hackathon 2026 — Problem Statement SIH26162**.
+Agnidrishti is a cutting-edge geospatial thermal-intelligence prototype engineered for **Smart India Hackathon 2026 (Problem Statement SIH26162)**.
 
-The project is designed to go beyond simply plotting thermal hotspots. Its goal is to investigate a hotspot using thermal, temporal, industrial, land-cover and satellite context, then classify and explain what that thermal anomaly most likely represents.
+Going beyond mere thermal hotspot plotting, Agnidrishti investigates anomalies using thermal, temporal, industrial, land-cover, and satellite contexts to intelligently classify and interpret thermal events.
 
-## Core Product Principle
-
-```text
-DETECT
-  ↓
-UNDERSTAND
-  ↓
-CLASSIFY
-  ↓
-EXPLAIN
-  ↓
-MONITOR
-```
-
-Agnidrishti is **not** intended to be another NASA FIRMS clone. FIRMS provides thermal detections; Agnidrishti is being built as the intelligence layer that interprets those detections in context.
+</div>
 
 ---
 
-# 🎯 What We Are Building
+## 📖 Core Product Principle
 
-The target end-to-end pipeline is:
+Agnidrishti functions as the intelligence layer over raw thermal detections (e.g., NASA FIRMS). Our pipeline is built on a clear, explainable philosophy:
 
-```text
-NASA FIRMS
-   ↓
-Thermal hotspot ingestion
-   ↓
-Normalization + storage
-   ↓
-Temporal persistence analysis
-   ↓
-Industrial-context analysis
-   ↓
-Land-cover analysis
-   ↓
-Satellite context
-   ↓
-Feature fusion
-   ↓
-ML classification
-   ↓
-Confidence + explainability
-   ↓
-Abnormal thermal-event scoring
-   ↓
-GIS dashboard + monitoring
+```mermaid
+graph LR
+    A[DETECT] --> B[UNDERSTAND] --> C[CLASSIFY] --> D[EXPLAIN] --> E[MONITOR]
 ```
 
-The final prototype should distinguish between categories such as:
+## 🎯 System Architecture & Pipeline
 
-- Probable industrial fire
-- Persistent industrial thermal source
-- Flare-like thermal activity
-- Mining / industrial thermal activity
-- Forest / natural fire
-- Agricultural burning
-- Uncertain thermal anomaly
+The end-to-end processing pipeline transforms raw satellite detections into actionable intelligence:
 
-Scientific wording is important. The system should not claim that an exact factory is burning or that a specific physical cause has been proven solely from satellite data. Outputs should remain probabilistic and explainable.
+1. **Thermal Ingestion:** NASA FIRMS NOAA-20 / NOAA-21 data streams.
+2. **Contextual Analysis:** 
+   - *Temporal Persistence:* Identifying repeated vs. transient heat.
+   - *Industrial Context:* Proximity to refineries, factories, and mines via OpenStreetMap.
+   - *Land-Cover:* Built environments, forests, or agriculture.
+   - *Satellite Evidence:* Sentinel-2 spectral and contextual indicators.
+3. **Feature Fusion & ML Classification:** Categorizing into Probable Industrial Fire, Flare Activity, Agricultural Burning, etc.
+4. **Explainability & Scoring:** Probabilistic outputs explaining the reasoning behind the thermal anomaly score.
+5. **GIS Dashboard:** An interactive intelligence dashboard for real-time monitoring.
 
 ---
 
-# 🧭 Development Roadmap
+## 🚀 Getting Started
 
-| Phase | Name | Purpose | Status |
-|---|---|---|---|
-| **0** | Foundation / Architecture / Environment | Create the repository structure, working frontend/backend foundation, GIS shell, fixture data flow, contracts and development workflow | 🟡 Implemented, final smoke verification pending |
-| **1** | NASA FIRMS Thermal Ingestion | Replace fixture hotspots with real FIRMS NOAA-20 / NOAA-21 detections | ⏳ Next |
-| **2** | PostGIS Storage + Normalization | Persist and normalize hotspot data in geospatial storage | ⬜ Not started |
-| **3** | Temporal Persistence Intelligence | Detect repeated vs transient heat and calculate persistence metrics | ⬜ Not started |
-| **4** | Industrial Context / OSM | Find nearby refineries, factories, plants, mines and industrial land | ⬜ Not started |
-| **5** | Land-Cover Intelligence | Understand whether hotspot surroundings are built, forest, crop, bare land, etc. | ⬜ Not started |
-| **6** | Sentinel-2 Satellite Context | Add satellite evidence and relevant spectral/contextual indicators | ⬜ Not started |
-| **7** | Feature Fusion | Combine thermal, temporal, industrial, land-cover and satellite features | ⬜ Not started |
-| **8** | ML Classification | Train and integrate the first real baseline classification model | ⬜ Not started |
-| **9** | Explainability | Show why a hotspot received a classification and confidence score | ⬜ Not started |
-| **10** | Abnormal Thermal Event Scoring | Compare current activity with historical behaviour to identify unusual industrial heat | ⬜ Not started |
-| **11** | Full GIS Dashboard | Complete the judge-facing geospatial intelligence dashboard | ⬜ Not started |
-| **12** | Monitoring + Analytics | Add historical charts, trends and monitoring views | ⬜ Not started |
-| **13** | Validation + Evaluation | Build verified test cases and evaluate classification performance | ⬜ Not started |
-| **14** | SIH Demo Mode | Prepare reproducible historical/demo cases for reliable judging | ⬜ Not started |
-| **15** | Future Extensions | Add only useful post-MVP extensions after the core pipeline is stable | ⬜ Future |
+Follow these steps to set up the **Phase 0 Foundation** locally. This phase runs in **Fixture Mode**, utilizing mock datasets to simulate the end-to-end application flow without external APIs.
 
----
+### Prerequisites
 
-# ✅ Phase 0 — What Has Been Implemented
+- **Node.js:** `>=20.0.0`
+- **Package Manager:** `pnpm`
+- **Python:** Managed via `uv` (Astral)
 
-Phase 0 establishes the working vertical slice that all later phases will extend.
+### Installation & Execution
 
-## Frontend
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YourOrg/agnidrishti.git
+   cd agnidrishti
+   ```
 
-Current frontend foundation is under:
+2. **Install Workspace Dependencies (Frontend):**
+   ```bash
+   pnpm install
+   ```
 
-```text
-apps/web
-```
+3. **Install Backend Dependencies:**
+   ```bash
+   cd services/api
+   uv sync
+   cd ../..
+   ```
 
-Implemented so far:
+4. **Run the Application Services:**
+   Open two separate terminal instances to start the frontend and backend.
+   
+   **Terminal 1 (Backend API):**
+   ```bash
+   pnpm dev:api
+   # API running at: http://localhost:8000
+   # Swagger Docs: http://localhost:8000/docs
+   ```
 
-- Next.js frontend scaffold
-- GIS-oriented dashboard shell
-- React-Leaflet map integration
-- OpenStreetMap base layer
-- Satellite base-layer option through layer controls
-- Fixture hotspot markers
-- Marker styling based on confidence/context
-- Hotspot quick-information popup
-- Floating dashboard controls / filters shell
-- Statistics card for active hotspot count
-- Analysis drawer for hotspot investigation
-- Frontend API service layer
-- FastAPI integration for fixture hotspot analysis
-
-Current frontend dependencies reported during Phase 0 include:
-
-- `react-leaflet`
-- `leaflet`
-- `axios`
-- `lucide-react`
-
-> **Architecture note:** The original bootstrap plan proposed MapLibre, but the current implementation uses React-Leaflet. Since the Phase 0 GIS flow is already implemented with Leaflet, it should be preserved unless a later requirement demonstrates a concrete limitation. Do not rewrite the map stack merely for consistency with an older plan.
+   **Terminal 2 (Frontend UI):**
+   ```bash
+   pnpm dev:web
+   # Dashboard running at: http://localhost:3000
+   ```
 
 ---
 
-## Backend
+## 🗺️ Development Roadmap
 
-Current backend is under:
+We adopt a phased execution approach. Phase 0 is currently finalized and verified.
 
-```text
-services/api
-```
-
-The FastAPI backend is intended to expose versioned endpoints under:
-
-```text
-/api/v1
-```
-
-Phase 0 currently supports fixture-driven hotspot data and analysis responses.
-
-The backend was confirmed to be running locally on:
-
-```text
-http://localhost:8000
-```
-
-Opening the root URL currently returns:
-
-```json
-{"detail":"Not Found"}
-```
-
-This is **expected** because no `/` route is defined. It does not mean FastAPI is broken.
-
-For API documentation, use:
-
-```text
-http://localhost:8000/docs
-```
+| Phase | Milestone | Description | Status |
+| :---: | :--- | :--- | :---: |
+| **0** | **Foundation / Architecture** | Repo structure, Next.js + React-Leaflet GIS shell, FastAPI backend, fixture data flow. | 🟢 **Verified** |
+| **1** | **NASA FIRMS Ingestion** | Replace fixtures with live FIRMS NOAA-20 / NOAA-21 detections. | ⏳ **Next** |
+| **2** | **PostGIS Storage** | Normalize and persist data geospatially. | ⬜ Planned |
+| **3** | **Temporal Intelligence** | Calculate persistence metrics for recurrent heat sources. | ⬜ Planned |
+| **4** | **Industrial Context** | Integrate OSM data for surrounding industrial mapping. | ⬜ Planned |
+| **5** | **Land-Cover Context** | Contextualize anomaly surroundings (forest, built, etc.). | ⬜ Planned |
+| **6-8** | **Feature Fusion & ML** | Sentinel-2 integration and baseline ML classification. | ⬜ Planned |
+| **9-10** | **Explainability & Scoring** | Model transparency and historical anomaly scoring. | ⬜ Planned |
+| **11-14**| **Dashboard & Analytics** | Finalizing judge-facing GIS UI, monitoring trends, and SIH Demo mode. | ⬜ Planned |
 
 ---
 
-# 🔬 Phase 0 Fixture Mode
+## 🛠️ Phase 0: Verification State
 
-Phase 0 intentionally uses fixture/mock hotspot records so that the complete frontend ↔ backend interaction can be built before external APIs are introduced.
+The Phase 0 foundational slice is complete. The following features are live in the local environment:
+- ✅ **Next.js 15 App Router** frontend scaffold with **React-Leaflet** integration.
+- ✅ Dynamic Stats Cards & Analysis Drawer reflecting mock classifications.
+- ✅ Interactive Dashboard with active filters (All, Industrial, Persistent).
+- ✅ **FastAPI** backend routing mock fixtures to the frontend `/api/v1/endpoints/hotspots`.
+- ✅ Resolved CORS and unified routing parameters.
 
-The intended Phase 0 flow is:
-
-```text
-Fixture hotspot data
-      ↓
-FastAPI
-      ↓
-Next.js frontend
-      ↓
-GIS marker
-      ↓
-User clicks hotspot
-      ↓
-Analysis API request
-      ↓
-Analysis drawer
-      ↓
-Fixture classification + evidence
-```
-
-Important:
-
-> Fixture classification values are development data only. They must not be presented as outputs from a real trained AI model.
-
-The first real ML model is scheduled for **Phase 8**.
+> **Note to Contributors:** Ensure you can load `localhost:3000`, interact with the GIS map, open the analysis drawer without console errors, and access the FastAPI Swagger UI at `http://localhost:8000/docs` before proceeding to Phase 1.
 
 ---
 
-# ⚠️ Current Verification State
+## 📜 Development Guidelines & Governance
 
-The following development commands have already been run successfully according to the Phase 0 implementation report:
+To maintain a high standard of quality suitable for the SIH internal shortlisting:
 
-```bash
-pnpm dev:api
-pnpm dev:web
-```
-
-The backend was visibly reachable on port `8000`.
-
-However, the **final browser smoke test for the frontend has not yet been confirmed by the project owner**.
-
-Before Phase 0 is considered fully frozen, one contributor should verify:
-
-```text
-localhost:3000 opens
-        ↓
-GIS map renders
-        ↓
-Fixture hotspot markers appear
-        ↓
-Hotspot can be clicked
-        ↓
-Analysis drawer opens
-        ↓
-FastAPI data is displayed
-        ↓
-No fatal browser-console errors
-```
-
-If any of these fail, repair Phase 0 before starting Phase 1.
+1. **Preserve Phase 0 Integrity:** Do not rewrite core architectural choices (e.g., React-Leaflet, FastAPI) unless backed by explicit project requirements. Make incremental, safe changes.
+2. **Scientific Credibility:** Avoid "fake AI" metrics. Ensure all probabilistic classifications are supported by data logic (e.g., "probable industrial thermal event").
+3. **Modularity:** Maintain decoupled integration with external providers (NASA FIRMS, OSM, Sentinel-2).
+4. **SIH Focus:** Every feature must directly align with **Problem Statement 162**. Prioritize end-to-end functionality over unnecessary visual polish.
 
 ---
 
-# ▶️ How To Run Phase 0 Locally
-
-## 1. Clone the repository
-
-```bash
-git clone <REPOSITORY_URL>
-cd agnidrishti
-```
-
-## 2. Install frontend/workspace dependencies
-
-```bash
-pnpm install
-```
-
-## 3. Install backend dependencies
-
-```bash
-cd services/api
-uv sync
-cd ../..
-```
-
-## 4. Start the FastAPI backend
-
-```bash
-pnpm dev:api
-```
-
-Expected backend:
-
-```text
-http://localhost:8000
-```
-
-Swagger/OpenAPI:
-
-```text
-http://localhost:8000/docs
-```
-
-## 5. Start the frontend in a second terminal
-
-```bash
-pnpm dev:web
-```
-
-Expected frontend:
-
-```text
-http://localhost:3000
-```
-
----
-
-# 🛠️ If Phase 0 Does Not Run
-
-Do **not** immediately start Phase 1 and do not rewrite the project.
-
-Check in this order:
-
-1. `pnpm install` completed successfully
-2. `uv sync` completed successfully
-3. backend starts on port `8000`
-4. frontend starts on port `3000`
-5. API base URL points to `http://localhost:8000/api/v1`
-6. FastAPI CORS allows `http://localhost:3000`
-7. React-Leaflet is loaded as client-side code where required by Next.js
-8. Leaflet CSS/assets load correctly
-9. no required development environment variable is missing
-10. no port conflict exists
-
-Apply the **smallest possible fix** and preserve the working architecture.
-
-Do not replace React-Leaflet, FastAPI, or the repository structure merely because of a local setup error.
-
----
-
-# 🧱 Frozen Project Rules
-
-All contributors must follow these rules.
-
-### 1. Do not break completed phases
-
-Before modifying code:
-
-```bash
-git status
-```
-
-Understand the current implementation before editing.
-
-### 2. Keep the product aligned to SIH26162
-
-Every feature should improve one of the following:
-
-```text
-DETECT
-UNDERSTAND
-CLASSIFY
-EXPLAIN
-MONITOR
-```
-
-Avoid unrelated features.
-
-### 3. Working demo before unnecessary polish
-
-UI/UX should be clean, modern and professional enough for internal SIH shortlisting, but excessive visual polish must never delay the real data pipeline.
-
-### 4. No fake AI
-
-Do not invent accuracy percentages, confidence values or model claims.
-
-### 5. Preserve scientific credibility
-
-Prefer:
-
-- probable industrial thermal event
-- possible industrial fire
-- persistent industrial thermal source
-- requires ground verification
-
-Avoid unsupported causal claims.
-
-### 6. External providers must remain modular
-
-Future data sources include:
-
-- NASA FIRMS
-- OpenStreetMap / Overpass
-- Dynamic World / ESA WorldCover
-- Sentinel-2 / Google Earth Engine
-
-Do not tightly couple the entire application to a single provider.
-
----
-
-# 🔥 Next Development Task — Phase 1
-
-Do **not** start random UI work or ML work next.
-
-The next major implementation is:
-
-## Phase 1 — NASA FIRMS Thermal Hotspot Ingestion
-
-Phase 1 will:
-
-- connect Agnidrishti to real NASA FIRMS data
-- ingest NOAA-20 / NOAA-21 VIIRS thermal detections
-- normalize FIRMS fields into the existing hotspot contract
-- preserve fixture mode as a fallback
-- expose real hotspots through the FastAPI API
-- render real detections on the existing GIS map
-- handle API/network failures gracefully
-- keep Phase 0 behaviour intact
-
-After Phase 1, Agnidrishti should stop being a fixture-only dashboard and become a real thermal-data system.
-
----
-
-# 👥 Contributor Handoff
-
-If you are a teammate continuing this repository, start by reading:
-
-1. this README
-2. `docs/PHASE_ROADMAP.md`
-3. `docs/ARCHITECTURE.md`
-4. current Git status/log
-5. the code for the phase you are assigned
-
-Do not redesign the whole project from scratch.
-
-When using an AI coding agent, give it this rule:
-
-> Inspect the existing Agnidrishti repository first. Preserve all working Phase 0 behaviour. Implement only the assigned phase, use the existing contracts and architecture, make the smallest safe changes, run validation after implementation, and do not start later phases automatically.
-
----
-
-# 🏆 Internal SIH Goal
-
-Agnidrishti is being built specifically to maximize our chances of getting shortlisted for the internal Smart India Hackathon round.
-
-The final prototype should be:
-
-- genuinely working
-- strictly aligned to SIH26162
-- technically defensible
-- geospatial-first
-- explainable
-- visually stronger and easier to use than typical existing thermal/fire-monitoring dashboards
-- reliable during judging
-- polished enough to feel like a real product prototype without sacrificing core functionality
-
-The priority is not to build the largest application.
-
-The priority is to build the **strongest complete end-to-end demonstration of the PS162 solution pipeline**.
-
----
-
-## Current Status Summary
-
-```text
-PHASE 0
-Foundation / Architecture / Fixture GIS Flow
-🟡 IMPLEMENTED — FINAL FRONTEND SMOKE VERIFICATION PENDING
-
-PHASE 1
-NASA FIRMS Thermal Ingestion
-⏳ NEXT
-
-PHASES 2–15
-⬜ NOT STARTED
-```
-
----
-
-**Project:** Agnidrishti  
-**Problem Statement:** SIH26162  
-**Current Development State:** Under Construction 🚧🔥
+<div align="center">
+  <p>Built with purpose for Smart India Hackathon 2026.</p>
+</div>
