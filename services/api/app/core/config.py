@@ -30,6 +30,45 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_role_key: str = ""
     database_url: str = ""
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_timeout_seconds: float = 30.0
+
+    @property
+    def async_database_url(self) -> str:
+        """
+        Normalize database URL for async SQLAlchemy.
+        Ensures postgresql+asyncpg:// scheme is used.
+        """
+        url = (self.database_url or "").strip()
+        if not url:
+            return ""
+        if url.startswith("postgres://"):
+            url = "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        return url
+
+    @property
+    def sanitized_database_url(self) -> str:
+        """
+        Return database URL with password redacted for safe logging.
+        Never logs credentials.
+        """
+        url = self.async_database_url
+        if not url:
+            return "not_configured"
+        try:
+            from urllib.parse import urlsplit, urlunsplit
+            parsed = urlsplit(url)
+            if parsed.password:
+                netloc = f"{parsed.username or ''}:***@{parsed.hostname or ''}"
+                if parsed.port:
+                    netloc += f":{parsed.port}"
+                return urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+            return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+        except Exception:
+            return "configured_redacted"
 
     # ─── NASA FIRMS ───
     firms_map_key: str = ""

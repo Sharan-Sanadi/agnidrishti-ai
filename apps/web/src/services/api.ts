@@ -19,6 +19,7 @@ export interface ThermalObservation {
   instrument: string;
   source: string;
   confidence: string;
+  confidence_normalized?: string | null;
   frp?: number | null;
   bright_ti4?: number | null;
   bright_ti5?: number | null;
@@ -26,11 +27,55 @@ export interface ThermalObservation {
   track?: number | null;
   daynight?: string | null;
   firms_version?: string | null;
-  ingestion_time_utc: string;
+  ingestion_time_utc?: string;
+  first_ingested_at?: string;
+  last_seen_at?: string;
+  ingestion_count?: number;
+  stored_in_postgis?: boolean;
   geojson?: {
     type: string;
     coordinates: [number, number]; // [longitude, latitude]
   };
+}
+
+export interface FIRMSSyncResponse {
+  status: string;
+  run_id: string;
+  provider: string;
+  sources: string[];
+  requested_bbox: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  };
+  day_range: number;
+  requested_date?: string | null;
+  fetched_count: number;
+  valid_count: number;
+  rejected_count: number;
+  upserted_count: number;
+  successful_sources: string[];
+  failed_sources: string[];
+  started_at: string;
+  completed_at?: string | null;
+  error_summary?: string | null;
+}
+
+export interface StoredObservationsResponse {
+  mode: string;
+  storage: string;
+  count: number;
+  total: number;
+  limit: number;
+  offset: number;
+  bbox?: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+  } | null;
+  observations: ThermalObservation[];
 }
 
 export interface FIRMSHotspotsResponse {
@@ -67,11 +112,16 @@ export interface Hotspot {
   brightness_ti4?: number | null;
   brightness_ti5?: number | null;
   confidence: string;
+  confidence_normalized?: string | null;
   day_night?: string | null;
   scan?: number | null;
   track?: number | null;
   firms_version?: string | null;
   ingestion_time_utc?: string;
+  first_ingested_at?: string;
+  last_seen_at?: string;
+  ingestion_count?: number;
+  stored_in_postgis?: boolean;
   risk?: string;
   persistent?: boolean;
   classification?: string;
@@ -151,6 +201,37 @@ export const api = {
     const response = await apiClient.post<AnalysisResponse>('/analyze', {
       latitude,
       longitude,
+    });
+    return response.data;
+  },
+
+  async syncFIRMS(params?: {
+    west?: number;
+    south?: number;
+    east?: number;
+    north?: number;
+    days?: number;
+    sources?: string[];
+    date?: string;
+    force_refresh?: boolean;
+  }): Promise<FIRMSSyncResponse> {
+    const response = await apiClient.post<FIRMSSyncResponse>('/firms/sync', params);
+    return response.data;
+  },
+
+  async getStoredObservations(params?: {
+    west?: number;
+    south?: number;
+    east?: number;
+    north?: number;
+    start_time?: string;
+    end_time?: string;
+    sources?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<StoredObservationsResponse> {
+    const response = await apiClient.get<StoredObservationsResponse>('/observations', {
+      params,
     });
     return response.data;
   }

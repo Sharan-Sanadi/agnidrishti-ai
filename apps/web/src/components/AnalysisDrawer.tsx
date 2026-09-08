@@ -1,4 +1,4 @@
-import { X, CheckCircle, AlertTriangle, Info, Satellite, Flame, Clock, Compass, Hash, ShieldCheck } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, Info, Satellite, Flame, Clock, Compass, Hash, ShieldCheck, Database } from 'lucide-react';
 import { AnalysisResponse, Hotspot } from '../services/api';
 
 interface AnalysisDrawerProps {
@@ -129,19 +129,50 @@ export function AnalysisDrawer({ hotspot, analysis, loading, onClose }: Analysis
                     </span>
                   </div>
                 </div>
+
+                {hotspot.stored_in_postgis && (
+                  <div className="pt-2 border-t border-slate-200 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                      <Database size={14} className="text-emerald-600" />
+                      <span>Stored in PostGIS (SRID: 4326)</span>
+                    </div>
+                    {hotspot.first_ingested_at && (
+                      <div className="flex justify-between text-[11px] text-slate-600">
+                        <span>First Ingested:</span>
+                        <span className="font-mono font-medium text-slate-800">
+                          {new Date(hotspot.first_ingested_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} UTC
+                        </span>
+                      </div>
+                    )}
+                    {hotspot.last_seen_at && (
+                      <div className="flex justify-between text-[11px] text-slate-600">
+                        <span>Last Seen:</span>
+                        <span className="font-mono font-medium text-slate-800">
+                          {new Date(hotspot.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })} UTC
+                        </span>
+                      </div>
+                    )}
+                    {hotspot.ingestion_count != null && (
+                      <div className="flex justify-between text-[11px] text-slate-600">
+                        <span>Ingestion Count:</span>
+                        <span className="font-bold text-slate-900">{hotspot.ingestion_count}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Phase 1 Scientific Notice */}
-            <div className="bg-blue-50 rounded-lg p-3.5 border border-blue-200 text-xs text-blue-900 leading-relaxed">
-              <div className="flex items-center gap-1.5 font-bold mb-1 text-blue-950">
-                <ShieldCheck size={16} className="text-blue-700" /> Phase 1 Data Status
+            {/* Phase 2 Storage Provenance Notice */}
+            <div className="bg-emerald-50 rounded-lg p-3.5 border border-emerald-200 text-xs text-emerald-950 leading-relaxed">
+              <div className="flex items-center gap-1.5 font-bold mb-1 text-emerald-900">
+                <ShieldCheck size={16} className="text-emerald-700" /> Phase 2 PostGIS Data Status
               </div>
               <p>
-                This record is an authentic near-real-time satellite thermal anomaly ingested directly from NASA FIRMS.
+                This record is normalized and persisted in PostgreSQL/PostGIS with spatial geometry indexing.
               </p>
-              <p className="mt-1 text-blue-800/90 text-[11px]">
-                Industrial classification, land-cover intelligence, and persistence analysis will be integrated in subsequent phases (Phases 2–10).
+              <p className="mt-1 text-emerald-800/90 text-[11px]">
+                Multi-day temporal persistence and thermal anomaly clustering will be computed in Phase 3.
               </p>
             </div>
           </>

@@ -28,6 +28,12 @@ export function Dashboard() {
   const [liveFilter, setLiveFilter] = useState<LiveFilter>('all');
   const [dayRange, setDayRange] = useState<number>(1);
 
+  // Phase 2 PostGIS Storage Metadata
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isPostgisBacked, setIsPostgisBacked] = useState<boolean>(false);
+  const [totalStored, setTotalStored] = useState<number | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+
   // Phase 0 Fixture Filter
   const [fixtureFilter, setFixtureFilter] = useState<FixtureFilter>('all');
 
@@ -39,39 +45,105 @@ export function Dashboard() {
     async function fetchData() {
       try {
         if (dataMode === 'live') {
-          const response = await api.getFIRMSHotspots({
-            days: dayRange,
-            force_refresh: refreshTrigger > 0,
-          });
-          if (!isMounted) return;
+          // Phase 2 Controlled Flow:
+          // If manual refresh triggered, run sync first (NASA FIRMS -> PostGIS)
+          if (refreshTrigger > 0) {
+            setIsSyncing(true);
+            try {
+              const syncResp = await api.syncFIRMS({
+                days: dayRange,
+                force_refresh: true,
+              });
+              if (isMounted) {
+                setLastSyncTime(new Date().toLocaleTimeString());
+                console.log(`[Phase 2 Sync] Completed run ${syncResp.run_id} with ${syncResp.upserted_count} upserts.`);
+              }
+            } catch (syncErr) {
+              console.warn("Sync to PostGIS failed or database unconfigured; will attempt direct load:", syncErr);
+            } finally {
+              if (isMounted) setIsSyncing(false);
+            }
+          }
 
-          setFirmsMeta(response);
-          const mapped: Hotspot[] = response.observations.map((obs) => ({
-            id: obs.id,
-            latitude: obs.latitude,
-            longitude: obs.longitude,
-            acquired_at: obs.acquisition_time_utc,
-            source: obs.source,
-            satellite: obs.satellite,
-            instrument: obs.instrument,
-            frp_mw: obs.frp,
-            brightness_ti4: obs.bright_ti4,
-            brightness_ti5: obs.bright_ti5,
-            confidence: obs.confidence,
-            day_night: obs.daynight,
-            scan: obs.scan,
-            track: obs.track,
-            firms_version: obs.firms_version,
-            ingestion_time_utc: obs.ingestion_time_utc,
-            is_live_firms: true,
-          }));
-          setHotspots(mapped);
-          setErrorMessage(null);
+          // Read observations from PostGIS storage
+          let loadedFromPostGIS = false;
+          try {
+            const storedResp = await api.getStoredObservations({ limit: 1500 });
+            if (!isMounted) return;
+
+            if (storedResp && storedResp.observations && storedResp.observations.length > 0) {
+              const mapped: Hotspot[] = storedResp.observations.map((obs) => ({
+                id: obs.id,
+                latitude: obs.latitude,
+                longitude: obs.longitude,
+                acquired_at: obs.acquisition_time_utc,
+                source: obs.source,
+                satellite: obs.satellite,
+                instrument: obs.instrument,
+                frp_mw: obs.frp,
+                brightness_ti4: obs.bright_ti4,
+                brightness_ti5: obs.bright_ti5,
+                confidence: obs.confidence,
+                confidence_normalized: obs.confidence_normalized,
+                day_night: obs.daynight,
+                scan: obs.scan,
+                track: obs.track,
+                firms_version: obs.firms_version,
+                first_ingested_at: obs.first_ingested_at,
+                last_seen_at: obs.last_seen_at,
+                ingestion_count: obs.ingestion_count,
+                stored_in_postgis: true,
+                is_live_firms: true,
+              }));
+              setHotspots(mapped);
+              setIsPostgisBacked(true);
+              setTotalStored(storedResp.total);
+              loadedFromPostGIS = true;
+              setErrorMessage(null);
+            }
+          } catch (postgisErr) {
+            console.warn("Could not retrieve from PostGIS storage:", postgisErr);
+          }
+
+          // If PostGIS has no records or is unconfigured, fallback to Phase 1 live API
+          if (!loadedFromPostGIS) {
+            const response = await api.getFIRMSHotspots({
+              days: dayRange,
+              force_refresh: refreshTrigger > 0,
+            });
+            if (!isMounted) return;
+
+            setFirmsMeta(response);
+            const mapped: Hotspot[] = response.observations.map((obs) => ({
+              id: obs.id,
+              latitude: obs.latitude,
+              longitude: obs.longitude,
+              acquired_at: obs.acquisition_time_utc,
+              source: obs.source,
+              satellite: obs.satellite,
+              instrument: obs.instrument,
+              frp_mw: obs.frp,
+              brightness_ti4: obs.bright_ti4,
+              brightness_ti5: obs.bright_ti5,
+              confidence: obs.confidence,
+              day_night: obs.daynight,
+              scan: obs.scan,
+              track: obs.track,
+              firms_version: obs.firms_version,
+              ingestion_time_utc: obs.ingestion_time_utc,
+              stored_in_postgis: false,
+              is_live_firms: true,
+            }));
+            setHotspots(mapped);
+            setIsPostgisBacked(false);
+            setErrorMessage(null);
+          }
         } else {
           const data = await api.getHotspots();
           if (!isMounted) return;
           setHotspots(data.hotspots);
           setFirmsMeta(null);
+          setIsPostgisBacked(false);
           setErrorMessage(null);
         }
       } catch (err: unknown) {
@@ -92,6 +164,7 @@ export function Dashboard() {
       } finally {
         if (isMounted) {
           setLoading(false);
+          setIsSyncing(false);
         }
       }
     }
@@ -104,6 +177,7 @@ export function Dashboard() {
   }, [dataMode, dayRange, refreshTrigger]);
 
   const handleManualRefresh = () => {
+    if (loading || isSyncing) return;
     setLoading(true);
     setRefreshTrigger(prev => prev + 1);
   };
@@ -167,12 +241,24 @@ export function Dashboard() {
             </div>
             <p className="text-xs font-medium text-slate-400">
               {dataMode === 'live' ? (
-                <span className="flex items-center gap-1.5 text-emerald-400">
+                <span className="flex items-center gap-2 text-emerald-400">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                   </span>
-                  NASA FIRMS — Live Satellite Ingestion Pipeline (VIIRS NOAA-20 & NOAA-21)
+                  {isPostgisBacked ? (
+                    <span className="flex items-center gap-1 font-semibold">
+                      <Database size={13} className="text-emerald-400" />
+                      NASA FIRMS • PostGIS-backed {totalStored != null ? `(${totalStored} Stored)` : ''}
+                    </span>
+                  ) : (
+                    <span>NASA FIRMS — Live Satellite Ingestion Pipeline (VIIRS NOAA-20 & NOAA-21)</span>
+                  )}
+                  {lastSyncTime && (
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      • Synced: {lastSyncTime}
+                    </span>
+                  )}
                 </span>
               ) : (
                 <span className="text-amber-400">Phase 0 Local Fixture Mode (Offline Development)</span>
@@ -210,12 +296,12 @@ export function Dashboard() {
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
-            disabled={loading}
+            disabled={loading || isSyncing}
             className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-            title="Refresh satellite data from API"
+            title="Sync NASA FIRMS to PostGIS and refresh map"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin text-orange-400' : ''} />
-            <span>{loading ? 'Ingesting...' : 'Refresh'}</span>
+            <RefreshCw size={14} className={loading || isSyncing ? 'animate-spin text-orange-400' : ''} />
+            <span>{isSyncing ? 'Syncing to PostGIS...' : loading ? 'Loading...' : 'Refresh'}</span>
           </button>
         </div>
       </header>

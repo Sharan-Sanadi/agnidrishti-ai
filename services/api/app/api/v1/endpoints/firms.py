@@ -10,9 +10,11 @@ Routes:
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import DEFAULT_FIRMS_SENSORS, INDIA_DEFAULT_BBOX, FIRMSErrorCode
 from app.core.logging import logger
+from app.db.session import get_db
 from app.providers.firms import (
     FIRMSClient,
     FIRMSException,
@@ -23,6 +25,11 @@ from app.schemas.firms import (
     FIRMSAvailabilityResponse,
     FIRMSHotspotsResponse,
 )
+from app.schemas.observations import (
+    FIRMSSyncRequest,
+    FIRMSSyncResponse,
+)
+from app.services.firms_ingestion import FIRMSIngestionService
 
 router = APIRouter()
 
@@ -125,5 +132,64 @@ async def get_firms_availability(
             detail={
                 "code": FIRMSErrorCode.FIRMS_UPSTREAM_ERROR,
                 "message": f"Unexpected availability check error: {str(ex)}",
+            },
+        ) from ex
+
+
+@router.post(
+    "/sync",
+    response_model=FIRMSSyncResponse,
+    summary="Synchronize live NASA FIRMS thermal observations to PostGIS",
+    description="Orchestrates fetching from NASA FIRMS Area API, normalizing records, and executing an idempotent bulk upsert into PostgreSQL/PostGIS.",
+)
+async def sync_firms_to_postgis(
+    payload: FIRMSSyncRequest | None = None,
+    db: AsyncSession = Depends(get_db),
+    client: FIRMSClient = Depends(get_firms_client),
+) -> FIRMSSyncResponse:
+    # Use defaults if payload omitted
+    req = payload or FIRMSSyncRequest()
+
+    w = req.west if req.west is not None else INDIA_DEFAULT_BBOX[0]
+    s = req.south if req.south is not None else INDIA_DEFAULT_BBOX[1]
+    e = req.east if req.east is not None else INDIA_DEFAULT_BBOX[2]
+    n = req.north if req.north is not None else INDIA_DEFAULT_BBOX[3]
+
+    try:
+        bbox = BoundingBox(west=w, south=s, east=e, north=n)
+    except ValueError as val_err:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "code": FIRMSErrorCode.INVALID_BOUNDING_BOX,
+                "message": str(val_err),
+            },
+        ) from val_err
+
+    service = FIRMSIngestionService(db=db, firms_client=client)
+
+    try:
+        return await service.sync(
+            bbox=bbox,
+            day_range=req.days,
+            sources=req.sources,
+            date=req.date,
+            force_refresh=req.force_refresh,
+        )
+    except FIRMSException as ex:
+        raise HTTPException(
+            status_code=ex.status_code,
+            detail={
+                "code": ex.code,
+                "message": ex.message,
+            },
+        ) from ex
+    except Exception as ex:
+        logger.exception(f"Unexpected error during sync endpoint execution: {ex}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "SYNC_EXECUTION_ERROR",
+                "message": f"Failed to synchronize observations to PostGIS: {str(ex)}",
             },
         ) from ex
