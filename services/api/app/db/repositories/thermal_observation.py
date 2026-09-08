@@ -6,10 +6,17 @@ Guarantees idempotent bulk upsert, SRID 4326 spatial envelope filtering, and det
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from geoalchemy2.functions import ST_Intersects, ST_MakeEnvelope, ST_MakePoint, ST_SetSRID
+from geoalchemy2 import Geography
+from geoalchemy2.functions import (
+    ST_DWithin,
+    ST_Intersects,
+    ST_MakeEnvelope,
+    ST_MakePoint,
+    ST_SetSRID,
+)
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +34,10 @@ class ThermalObservationRepository:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def bulk_upsert(self, records: list[dict[str, Any]]) -> int:
+    async def bulk_upsert(self, records: list[dict[str, Any]], batch_size: int = 500) -> int:
         """
         Idempotent bulk upsert for thermal observations.
+        Batches records (default 500) to prevent asyncpg query argument limit (>32,767).
         If observation_id exists:
           - Preserves first_ingested_at
           - Updates last_seen_at to current timestamp
@@ -40,43 +48,47 @@ class ThermalObservationRepository:
         if not records:
             return 0
 
-        # Transform records to include PostGIS geometry expression: ST_SetSRID(ST_MakePoint(lng, lat), 4326)
-        db_records = []
-        for r in records:
-            rec = dict(r)
-            lng = rec["longitude"]
-            lat = rec["latitude"]
-            # CRITICAL GIS RULE: PostGIS MakePoint is (x, y) = (longitude, latitude)
-            rec["geom"] = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
-            db_records.append(rec)
+        total_upserted = 0
+        for i in range(0, len(records), batch_size):
+            chunk = records[i : i + batch_size]
+            db_records = []
+            for r in chunk:
+                rec = dict(r)
+                lng = rec["longitude"]
+                lat = rec["latitude"]
+                # CRITICAL GIS RULE: PostGIS MakePoint is (x, y) = (longitude, latitude)
+                rec["geom"] = ST_SetSRID(ST_MakePoint(lng, lat), 4326)
+                db_records.append(rec)
 
-        stmt = insert(ThermalObservationModel).values(db_records)
+            stmt = insert(ThermalObservationModel).values(db_records)
 
-        # Upsert conflict mapping on primary key (observation_id)
-        update_dict = {
-            "last_seen_at": stmt.excluded.last_seen_at,
-            "ingestion_count": ThermalObservationModel.ingestion_count + 1,
-            "updated_at": func.now(),
-            "confidence_raw": stmt.excluded.confidence_raw,
-            "confidence_normalized": stmt.excluded.confidence_normalized,
-            "frp": stmt.excluded.frp,
-            "bright_ti4": stmt.excluded.bright_ti4,
-            "bright_ti5": stmt.excluded.bright_ti5,
-            "scan": stmt.excluded.scan,
-            "track": stmt.excluded.track,
-            "daynight": stmt.excluded.daynight,
-            "firms_version": stmt.excluded.firms_version,
-            "raw_payload": stmt.excluded.raw_payload,
-        }
+            # Upsert conflict mapping on primary key (observation_id)
+            update_dict = {
+                "last_seen_at": stmt.excluded.last_seen_at,
+                "ingestion_count": ThermalObservationModel.ingestion_count + 1,
+                "updated_at": func.now(),
+                "confidence_raw": stmt.excluded.confidence_raw,
+                "confidence_normalized": stmt.excluded.confidence_normalized,
+                "frp": stmt.excluded.frp,
+                "bright_ti4": stmt.excluded.bright_ti4,
+                "bright_ti5": stmt.excluded.bright_ti5,
+                "scan": stmt.excluded.scan,
+                "track": stmt.excluded.track,
+                "daynight": stmt.excluded.daynight,
+                "firms_version": stmt.excluded.firms_version,
+                "raw_payload": stmt.excluded.raw_payload,
+            }
 
-        upsert_stmt = stmt.on_conflict_do_update(
-            index_elements=[ThermalObservationModel.observation_id],
-            set_=update_dict,
-        )
+            upsert_stmt = stmt.on_conflict_do_update(
+                index_elements=[ThermalObservationModel.observation_id],
+                set_=update_dict,
+            )
 
-        await self.db.execute(upsert_stmt)
+            await self.db.execute(upsert_stmt)
+            total_upserted += len(chunk)
+
         await self.db.flush()
-        return len(records)
+        return total_upserted
 
     async def query_spatial_temporal(
         self,
@@ -165,3 +177,35 @@ class ThermalObservationRepository:
         stmt = select(func.max(ThermalObservationModel.acquisition_time_utc))
         res = await self.db.execute(stmt)
         return res.scalar()
+
+    async def get_spatiotemporal_neighbors(
+        self,
+        target_latitude: float,
+        target_longitude: float,
+        target_time: datetime,
+        radius_m: float = 750.0,
+        lookback_days: int = 30,
+    ) -> list[ThermalObservationModel]:
+        """
+        Query candidate historical observations within radius_m meters and lookback_days of target_time.
+        CRITICAL NO-FUTURE-LEAKAGE RULE:
+        Candidate acquisition_time_utc MUST be <= target_time.
+        """
+        start_time = target_time - timedelta(days=lookback_days)
+
+        stmt = (
+            select(ThermalObservationModel)
+            .where(
+                ThermalObservationModel.acquisition_time_utc >= start_time,
+                ThermalObservationModel.acquisition_time_utc <= target_time,
+                ST_DWithin(
+                    func.cast(ThermalObservationModel.geom, Geography),
+                    func.cast(ST_SetSRID(ST_MakePoint(target_longitude, target_latitude), 4326), Geography),
+                    radius_m,
+                ),
+            )
+            .order_by(ThermalObservationModel.acquisition_time_utc.desc())
+        )
+
+        res = await self.db.execute(stmt)
+        return list(res.scalars().all())

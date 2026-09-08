@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 2 Verified](https://img.shields.io/badge/Status-Phase%202%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 3 Verified](https://img.shields.io/badge/Status-Phase%203%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,20 +15,21 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti lays the foundational data infrastructure for multi-day persistence modeling, OpenStreetMap infrastructure cross-referencing, and multispectral optical verification.
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), coverage-aware dataset history verification, and strict future-leakage-safe temporal persistence classification.
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 2 Verified
+## ⚡ Executive Summary — Phase 3 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
 | **Phase 0 — Foundation** | Next.js 16 GIS Shell, React-Leaflet, FastAPI router, Fixture Pipeline | 🟢 **Verified** |
 | **Phase 1 — NASA Ingestion** | Live NOAA-20 & NOAA-21 Area API ingestion, Defensive CSV parser, Canonical DTOs | 🟢 **Verified** |
 | **Phase 2 — PostGIS Storage** | Normalized PostGIS persistence, SRID 4326 Point geometry, Idempotent bulk upsert, Spatial/Temporal API | 🟢 **Verified** |
-| **Phase 3 — Temporal Persistence** | Multi-day recurrence detection, thermal anomaly clustering, abnormal surge detection | ⏳ **Next Phase** |
+| **Phase 3 — Temporal Persistence** | PostGIS ST_DWithin(750m) spatiotemporal recurrence, 30-day historical FIRMS backfill, distinct active UTC days, coverage gating, zero-future-leakage Temporal Persistence V1 index & classification | 🟢 **Verified** |
+| **Phase 4 — Industrial Context** | OpenStreetMap (OSM) infrastructure cross-referencing & proximity tagging | ⏳ **Next Phase** |
 
 ---
 
@@ -478,8 +479,8 @@ pnpm build:web
 [Phase 0] Foundation & GIS Shell ───────────────► 🟢 VERIFIED
 [Phase 1] NASA FIRMS Real Thermal Ingestion ─────► 🟢 VERIFIED
 [Phase 2] PostGIS Storage & Normalization ───────► 🟢 VERIFIED
-[Phase 3] Temporal Persistence Intelligence ─────► ⏳ NEXT UP
-[Phase 4] Industrial Context (OSM) ──────────────► ⬜ PLANNED
+[Phase 3] Temporal Persistence Intelligence ─────► 🟢 VERIFIED
+[Phase 4] Industrial Context (OSM) ──────────────► ⏳ NEXT UP
 [Phase 5] Land-Cover Baseline (Dynamic World) ───► ⬜ PLANNED
 [Phase 6] Sentinel-2 MSI Optical Cross-Ref ──────► ⬜ PLANNED
 [Phase 7] Geospatial Feature Fusion ─────────────► ⬜ PLANNED

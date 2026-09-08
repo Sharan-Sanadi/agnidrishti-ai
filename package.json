@@ -7,6 +7,7 @@
     "dev:web": "pnpm --filter @agnidrishti/web dev",
     "dev:api": "cd services/api && uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
     "build:web": "pnpm --filter @agnidrishti/web build",
+    "build": "pnpm --filter @agnidrishti/web build",
     "lint:web": "pnpm --filter @agnidrishti/web lint",
     "lint:api": "cd services/api && uv run ruff check .",
     "test:api": "cd services/api && uv run pytest -v",

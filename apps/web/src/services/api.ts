@@ -234,5 +234,106 @@ export const api = {
       params,
     });
     return response.data;
+  },
+
+  async getObservationPersistence(observationId: string, radiusM?: number): Promise<PersistenceProfileResponse> {
+    const response = await apiClient.get<PersistenceProfileResponse>(`/observations/${observationId}/persistence`, {
+      params: radiusM ? { radius_m: radiusM } : undefined,
+    });
+    return response.data;
+  },
+
+  async getBatchPersistence(observationIds: string[], radiusM?: number): Promise<BatchPersistenceResponse> {
+    const CHUNK_SIZE = 500;
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchPersistenceResponse>('/persistence/batch', {
+        observation_ids: observationIds,
+        radius_m: radiusM,
+      });
+      return response.data;
+    }
+
+    // Chunk into bounded batches of 500 and merge
+    const mergedProfiles: Record<string, PersistenceProfileResponse> = {};
+    let algorithmVersion = 'temporal_persistence_v1';
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      const response = await apiClient.post<BatchPersistenceResponse>('/persistence/batch', {
+        observation_ids: chunk,
+        radius_m: radiusM,
+      });
+      if (response.data?.profiles) {
+        Object.assign(mergedProfiles, response.data.profiles);
+        if (response.data.algorithm_version) {
+          algorithmVersion = response.data.algorithm_version;
+        }
+      }
+    }
+
+    return {
+      algorithm_version: algorithmVersion,
+      count: Object.keys(mergedProfiles).length,
+      profiles: mergedProfiles,
+    };
+  },
+
+  async backfillHistory(params?: {
+    days_history?: number;
+    west?: number;
+    south?: number;
+    east?: number;
+    north?: number;
+    sources?: string[];
+    chunk_days?: number;
+  }): Promise<BackfillResponse> {
+    const response = await apiClient.post<BackfillResponse>('/history/backfill', params);
+    return response.data;
   }
 };
+
+export interface PersistenceProfileResponse {
+  observation_id: string;
+  analysis_as_of: string;
+  radius_m: number;
+  algorithm_version: string;
+  raw_detection_count_7d: number;
+  raw_detection_count_30d: number;
+  active_days_7d: number;
+  active_days_30d: number;
+  active_weeks_30d: number;
+  first_seen_30d?: string | null;
+  last_seen_30d?: string | null;
+  temporal_span_days_30d: number;
+  history_coverage_days_7d: number;
+  history_coverage_days_30d: number;
+  history_coverage_ratio_30d: number;
+  persistence_index: number;
+  persistence_class: string;
+  explanation: string;
+  score_components: {
+    active_days_score: number;
+    temporal_span_score: number;
+    multi_week_score: number;
+    recency_score: number;
+  };
+}
+
+export interface BatchPersistenceResponse {
+  algorithm_version: string;
+  count: number;
+  profiles: Record<string, PersistenceProfileResponse>;
+}
+
+export interface BackfillResponse {
+  status: string;
+  days_history: number;
+  requested_bbox: Record<string, number>;
+  sources: string[];
+  chunks_total: number;
+  chunks_successful: number;
+  chunks_failed: number;
+  total_fetched: number;
+  total_upserted: number;
+  chunk_details: Array<Record<string, unknown>>;
+}

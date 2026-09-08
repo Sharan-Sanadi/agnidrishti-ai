@@ -53,12 +53,12 @@ export function StatsCards({
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200 flex items-center gap-4">
-          <div className="p-3 bg-slate-100 text-slate-500 rounded-full">
+          <div className="p-3 bg-purple-100 text-purple-600 rounded-full">
             <ShieldAlert size={24} />
           </div>
           <div>
-            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Industrial Class</p>
-            <p className="text-xs font-bold text-slate-600 mt-1">Pending Phase 3</p>
+            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">PERSISTENT THERMAL</p>
+            <p className="text-2xl font-black text-gray-900">{persistent}</p>
           </div>
         </div>
       </div>
@@ -92,7 +92,7 @@ export function StatsCards({
           <AlertTriangle size={24} />
         </div>
         <div>
-          <p className="text-sm text-gray-500 font-medium">Persistent Sources</p>
+          <p className="text-sm text-gray-500 font-medium">Persistent Thermal</p>
           <p className="text-2xl font-bold text-gray-900">{persistent}</p>
         </div>
       </div>

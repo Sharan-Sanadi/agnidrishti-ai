@@ -83,6 +83,13 @@ class Settings(BaseSettings):
         """Resolve FIRMS map key from either NASA_FIRMS_MAP_KEY or FIRMS_MAP_KEY."""
         return (self.nasa_firms_map_key or self.firms_map_key).strip()
 
+    # ─── Phase 3 Temporal Persistence ───
+    persistence_radius_meters: float = 750.0
+    persistence_lookback_days: int = 30
+    persistence_min_history_days: int = 21
+    persistence_algorithm_version: str = "temporal_persistence_v1"
+    persistence_backfill_chunk_days: int = 5
+
     # ─── OSM / Overpass ───
     overpass_api_url: str = "https://overpass-api.de/api/interpreter"
 

@@ -49,9 +49,13 @@ def test_readiness_check_ready():
 
 
 def test_get_observations_database_unconfigured():
-    response = client.get("/api/v1/observations")
-    assert response.status_code == 503
-    assert response.json()["detail"]["code"] == "DATABASE_UNAVAILABLE"
+    with patch(
+        "app.api.v1.endpoints.observations.ThermalObservationRepository.query_spatial_temporal",
+        side_effect=Exception("Database unavailable"),
+    ):
+        response = client.get("/api/v1/observations")
+        assert response.status_code == 503
+        assert response.json()["detail"]["code"] == "DATABASE_UNAVAILABLE"
 
 
 def test_get_observations_invalid_time_range():

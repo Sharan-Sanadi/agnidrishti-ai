@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { api, Hotspot, AnalysisResponse, FIRMSHotspotsResponse } from '../services/api';
+import { api, Hotspot, AnalysisResponse, FIRMSHotspotsResponse, PersistenceProfileResponse } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
 import { Activity, RefreshCw, Satellite, AlertCircle, Database } from 'lucide-react';
@@ -11,7 +11,7 @@ import { Activity, RefreshCw, Satellite, AlertCircle, Database } from 'lucide-re
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
 type DataMode = 'live' | 'fixture';
-type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night';
+type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -19,6 +19,7 @@ export function Dashboard() {
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
+  const [persistenceMap, setPersistenceMap] = useState<Record<string, PersistenceProfileResponse>>({});
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -100,6 +101,19 @@ export function Dashboard() {
               setTotalStored(storedResp.total);
               loadedFromPostGIS = true;
               setErrorMessage(null);
+
+              // Phase 3: Fetch Batch Persistence Profiles for all loaded observations
+              try {
+                const ids = mapped.map((h) => h.id).slice(0, 1500);
+                if (ids.length > 0) {
+                  const batchRes = await api.getBatchPersistence(ids);
+                  if (isMounted && batchRes && batchRes.profiles) {
+                    setPersistenceMap(batchRes.profiles);
+                  }
+                }
+              } catch (batchErr) {
+                console.warn("[Phase 3 Batch Persistence] Warning:", batchErr);
+              }
             }
           } catch (postgisErr) {
             console.warn("Could not retrieve from PostGIS storage:", postgisErr);
@@ -186,6 +200,18 @@ export function Dashboard() {
     setSelectedHotspot(hotspot);
     setAnalysis(null);
 
+    // If observation has no cached persistence profile, fetch it on-demand
+    if (hotspot.id && !persistenceMap[hotspot.id]) {
+      try {
+        const prof = await api.getObservationPersistence(hotspot.id);
+        if (prof) {
+          setPersistenceMap(prev => ({ ...prev, [hotspot.id]: prof }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch persistence profile on click:", err);
+      }
+    }
+
     // Only run mock analysis for Phase 0 fixtures
     if (!hotspot.is_live_firms) {
       setLoadingAnalysis(true);
@@ -212,6 +238,7 @@ export function Dashboard() {
       if (liveFilter === 'noaa21') return (h.source || '').includes('NOAA21') || h.satellite === 'N21';
       if (liveFilter === 'day') return h.day_night === 'D';
       if (liveFilter === 'night') return h.day_night === 'N';
+      if (liveFilter === 'persistent') return persistenceMap[h.id]?.persistence_class === 'PERSISTENT';
       return true;
     } else {
       if (fixtureFilter === 'industrial') return h.classification === 'industrial';
@@ -220,9 +247,12 @@ export function Dashboard() {
     }
   });
 
-  // Calculate live counts
+  // Calculate live counts with 100% scope consistency
   const noaa20Count = hotspots.filter(h => (h.source || '').includes('NOAA20') || h.satellite === 'N20').length;
   const noaa21Count = hotspots.filter(h => (h.source || '').includes('NOAA21') || h.satellite === 'N21').length;
+  const persistentCount = dataMode === 'live'
+    ? hotspots.filter(h => persistenceMap[h.id]?.persistence_class === 'PERSISTENT').length
+    : hotspots.filter(h => h.persistent).length;
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
@@ -317,7 +347,7 @@ export function Dashboard() {
               noaa20={noaa20Count}
               noaa21={noaa21Count}
               industrial={hotspots.filter(h => h.classification === 'industrial').length}
-              persistent={hotspots.filter(h => h.persistent).length}
+              persistent={persistentCount}
               highRisk={hotspots.filter(h => h.risk === 'high').length}
             />
           </div>
@@ -405,6 +435,16 @@ export function Dashboard() {
                   />
                   Nighttime (N)
                 </label>
+                <label className="flex items-center gap-2 cursor-pointer font-medium text-purple-800 hover:text-purple-950 font-bold">
+                  <input
+                    type="radio"
+                    name="live_filter"
+                    checked={liveFilter === 'persistent'}
+                    onChange={() => setLiveFilter('persistent')}
+                    className="accent-purple-600"
+                  />
+                  Persistent Phase 3 ({persistentCount})
+                </label>
               </div>
 
               {/* Day Range Selector */}
@@ -476,13 +516,18 @@ export function Dashboard() {
 
         {/* Map Container */}
         <div className="flex-1 w-full relative z-0">
-          <Map hotspots={filteredHotspots} onHotspotClick={handleHotspotClick} />
+          <Map
+            hotspots={filteredHotspots}
+            persistenceMap={persistenceMap}
+            onHotspotClick={handleHotspotClick}
+          />
         </div>
 
         {/* Analysis Drawer */}
         <AnalysisDrawer 
           hotspot={selectedHotspot} 
           analysis={analysis} 
+          persistenceProfile={selectedHotspot ? persistenceMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
         />

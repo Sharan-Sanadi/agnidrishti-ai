@@ -1,14 +1,15 @@
-import { X, CheckCircle, AlertTriangle, Info, Satellite, Flame, Clock, Compass, Hash, ShieldCheck, Database } from 'lucide-react';
-import { AnalysisResponse, Hotspot } from '../services/api';
+import { X, CheckCircle, AlertTriangle, Info, Satellite, Flame, Clock, Compass, Hash, ShieldCheck, Database, History } from 'lucide-react';
+import { AnalysisResponse, Hotspot, PersistenceProfileResponse } from '../services/api';
 
 interface AnalysisDrawerProps {
   hotspot: Hotspot | null;
   analysis: AnalysisResponse | null;
+  persistenceProfile?: PersistenceProfileResponse | null;
   loading: boolean;
   onClose: () => void;
 }
 
-export function AnalysisDrawer({ hotspot, analysis, loading, onClose }: AnalysisDrawerProps) {
+export function AnalysisDrawer({ hotspot, analysis, persistenceProfile, loading, onClose }: AnalysisDrawerProps) {
   if (!hotspot) return null;
 
   const isLive = Boolean(hotspot.is_live_firms);
@@ -163,18 +164,82 @@ export function AnalysisDrawer({ hotspot, analysis, loading, onClose }: Analysis
               </div>
             </div>
 
-            {/* Phase 2 Storage Provenance Notice */}
-            <div className="bg-emerald-50 rounded-lg p-3.5 border border-emerald-200 text-xs text-emerald-950 leading-relaxed">
-              <div className="flex items-center gap-1.5 font-bold mb-1 text-emerald-900">
-                <ShieldCheck size={16} className="text-emerald-700" /> Phase 2 PostGIS Data Status
+            {/* Phase 3 Temporal Persistence Panel */}
+            {persistenceProfile ? (
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                  <History size={14} className="text-purple-600" /> Temporal Persistence (Phase 3)
+                </h3>
+                <div className="bg-purple-50/70 rounded-lg p-3.5 border border-purple-200 text-xs space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-black px-2.5 py-1 rounded uppercase tracking-wider border ${
+                      persistenceProfile.persistence_class === 'PERSISTENT'
+                        ? 'bg-purple-600 text-white border-purple-700'
+                        : persistenceProfile.persistence_class === 'RECURRING'
+                        ? 'bg-amber-600 text-white border-amber-700'
+                        : persistenceProfile.persistence_class === 'OCCASIONAL'
+                        ? 'bg-blue-600 text-white border-blue-700'
+                        : persistenceProfile.persistence_class === 'ISOLATED'
+                        ? 'bg-slate-700 text-white border-slate-800'
+                        : 'bg-gray-200 text-gray-800 border-gray-300'
+                    }`}>
+                      {persistenceProfile.persistence_class.replace(/_/g, ' ')}
+                    </span>
+                    <div className="text-right">
+                      <span className="text-[10px] text-purple-700 font-bold block">Persistence Index</span>
+                      <span className="text-lg font-black text-purple-950">
+                        {persistenceProfile.persistence_class === 'INSUFFICIENT_HISTORY'
+                          ? 'N/A'
+                          : `${persistenceProfile.persistence_index} / 100`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-purple-200/80">
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Active Days (30d)</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.active_days_30d} days</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Active Days (7d)</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.active_days_7d} days</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Raw Detections (30d)</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.raw_detection_count_30d}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Active Weeks (30d)</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.active_weeks_30d} weeks</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Temporal Span</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.temporal_span_days_30d.toFixed(1)} days</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block text-[11px]">Dataset Coverage</span>
+                      <span className="font-bold text-slate-900 text-sm">{persistenceProfile.history_coverage_days_30d} / 30 days</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-purple-200/80 text-[11px] text-purple-900 leading-relaxed bg-white/60 p-2.5 rounded border border-purple-100">
+                    <p className="font-medium">{persistenceProfile.explanation}</p>
+                    <p className="mt-1 text-[10px] text-slate-500">
+                      Association Radius: {persistenceProfile.radius_m}m | Algorithm: {persistenceProfile.algorithm_version}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <p>
-                This record is normalized and persisted in PostgreSQL/PostGIS with spatial geometry indexing.
-              </p>
-              <p className="mt-1 text-emerald-800/90 text-[11px]">
-                Multi-day temporal persistence and thermal anomaly clustering will be computed in Phase 3.
-              </p>
-            </div>
+            ) : (
+              <div className="bg-slate-50 rounded-lg p-3.5 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                <div className="flex items-center gap-1.5 font-bold mb-1 text-slate-900">
+                  <ShieldCheck size={16} className="text-emerald-600" /> Phase 3 Temporal Intelligence Active
+                </div>
+                <p>
+                  PostGIS spatiotemporal analysis engine active on 750m spatial radius with 30-day lookback.
+                </p>
+              </div>
+            )}
           </>
         ) : (
           /* Phase 0 Fixture Mode Analysis */
