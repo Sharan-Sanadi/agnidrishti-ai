@@ -1,5 +1,7 @@
 <div align="center">
 
+# 👑 SAGAR NM
+
 # 🔥 Agnidrishti (अग्निदृष्टि)
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
@@ -497,7 +499,7 @@ pnpm build:web
 
 ## 👥 Contributors
 
-- **Sagar NM** (`sagar`)
+# <div align="center">👑 SAGAR NM</div>
 
 ---
 
