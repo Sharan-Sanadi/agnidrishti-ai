@@ -11,11 +11,12 @@ import {
   IndustrialContextProfileResponse,
   LandCoverProfileResponse,
   SentinelContextProfileResponse,
+  FusionProfileResponse,
   OSMFeatureCollection,
 } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite, Layers } from 'lucide-react';
 
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
@@ -23,6 +24,7 @@ type DataMode = 'live' | 'fixture';
 type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent' | 'mapped_industry';
 type LandCoverFilter = 'all' | 'cropland' | 'tree_cover' | 'built_up' | 'grassland' | 'mixed';
 type SentinelFilter = 'all' | 'evaluated' | 'clear' | 'cloud_limited' | 'recent';
+type FusionFilter = 'all' | 'complete' | 'partial' | 'evaluated';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -47,6 +49,11 @@ export function Dashboard() {
   const [sentinelContextMap, setSentinelContextMap] = useState<Record<string, SentinelContextProfileResponse>>({});
   const [isSyncingSentinel, setIsSyncingSentinel] = useState<boolean>(false);
   const [sentinelFilter, setSentinelFilter] = useState<SentinelFilter>('all');
+
+  // Phase 7 Feature Fusion State
+  const [fusionMap, setFusionMap] = useState<Record<string, FusionProfileResponse>>({});
+  const [isSyncingFusion, setIsSyncingFusion] = useState<boolean>(false);
+  const [fusionFilter, setFusionFilter] = useState<FusionFilter>('all');
 
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -159,6 +166,15 @@ export function Dashboard() {
                       }
                     })
                     .catch((err) => console.warn("[Phase 6 Batch Sentinel Context] Warning:", err)),
+
+                  // Phase 7: Batch Feature Fusion Profiles (500 chunking)
+                  apiService.getBatchFusion(ids)
+                    .then((fusRes) => {
+                      if (isMounted && fusRes?.profiles) {
+                        setFusionMap(fusRes.profiles);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 7 Batch Fusion] Warning:", err)),
                 ]);
               }
             }
@@ -338,6 +354,18 @@ export function Dashboard() {
         console.warn("Failed to fetch Sentinel profile on click:", err);
       }
     }
+
+    // Fetch Feature Fusion profile on demand if absent
+    if (hotspot.id && !fusionMap[hotspot.id]) {
+      try {
+        const fusProf = await apiService.getObservationFusion(hotspot.id);
+        if (fusProf) {
+          setFusionMap(prev => ({ ...prev, [hotspot.id]: fusProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch fusion profile on click:", err);
+      }
+    }
   };
 
   const handleSyncSentinel = async (targetId?: string) => {
@@ -360,6 +388,30 @@ export function Dashboard() {
       console.error("Sentinel sync failed:", err);
     } finally {
       setIsSyncingSentinel(false);
+    }
+  };
+
+  const handleSyncFusion = async () => {
+    if (isSyncingFusion || hotspots.length === 0) return;
+    setIsSyncingFusion(true);
+    try {
+      const ids = hotspots.map((h) => h.id).slice(0, 1500);
+      await apiService.syncFusion({
+        observation_ids: ids,
+        force_recompute: false,
+      });
+
+      // Refresh fusion profiles via 500-chunked batch
+      if (ids.length > 0) {
+        const res = await apiService.getBatchFusion(ids);
+        if (res && res.profiles) {
+          setFusionMap(res.profiles);
+        }
+      }
+    } catch (err) {
+      console.error("Feature Fusion sync failed:", err);
+    } finally {
+      setIsSyncingFusion(false);
     }
   };
 
@@ -419,6 +471,15 @@ export function Dashboard() {
         }
       }
 
+      // Phase 7 Feature Fusion Filter
+      if (fusionFilter === 'complete') {
+        return fusionMap[h.id]?.fusion_status === 'COMPLETE';
+      } else if (fusionFilter === 'partial') {
+        return fusionMap[h.id]?.fusion_status === 'PARTIAL';
+      } else if (fusionFilter === 'evaluated') {
+        return Boolean(fusionMap[h.id]);
+      }
+
       return true;
     } else {
       if (fixtureFilter === 'industrial') return false;
@@ -447,6 +508,9 @@ export function Dashboard() {
     const prof = sentinelContextMap[h.id];
     return prof && (prof.quality_status === 'EXCELLENT' || prof.quality_status === 'GOOD');
   }).length;
+  const fusionCompleteCount = hotspots.filter(h => fusionMap[h.id]?.fusion_status === 'COMPLETE').length;
+  const fusionPartialCount = hotspots.filter(h => fusionMap[h.id]?.fusion_status === 'PARTIAL').length;
+  const fusionEvaluatedCount = hotspots.filter(h => Boolean(fusionMap[h.id])).length;
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
@@ -536,6 +600,17 @@ export function Dashboard() {
             <span>{isSyncingSentinel ? 'Syncing Sentinel...' : 'Sync Sentinel'}</span>
           </button>
 
+          {/* Sync Feature Fusion Button */}
+          <button
+            onClick={handleSyncFusion}
+            disabled={isSyncingFusion || loading}
+            className="flex items-center gap-1.5 text-xs bg-purple-950/80 hover:bg-purple-900 border border-purple-700 text-purple-300 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Assemble & persist Phase 7 multi-modal feature fusion profiles"
+          >
+            <Layers size={14} className={isSyncingFusion ? 'animate-spin text-purple-300' : 'text-purple-400'} />
+            <span>{isSyncingFusion ? 'Syncing Fusion...' : 'Sync Fusion'}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
@@ -564,6 +639,8 @@ export function Dashboard() {
               landCoverEvaluated={landCoverEvaluatedCount}
               sentinelEvaluated={sentinelEvaluatedCount}
               sentinelClear={sentinelClearCount}
+              fusionComplete={fusionCompleteCount}
+              fusionPartial={fusionPartialCount}
               highRisk={0}
             />
           </div>
@@ -736,6 +813,38 @@ export function Dashboard() {
               </div>
             </div>
 
+            {/* Phase 7 Feature Fusion Filter */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-purple-800 uppercase tracking-wider flex items-center gap-1">
+                  <Layers size={12} className="text-purple-600" /> Feature Fusion (Phase 7)
+                </span>
+                <span className="text-[9px] font-semibold text-purple-600">
+                  {fusionEvaluatedCount} Evaluated
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'complete', label: `Complete (${fusionCompleteCount})` },
+                  { id: 'partial', label: `Partial (${fusionPartialCount})` },
+                  { id: 'evaluated', label: 'Evaluated' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setFusionFilter(opt.id as FusionFilter)}
+                    className={`py-1 px-1.5 rounded text-left font-medium transition-all ${
+                      fusionFilter === opt.id
+                        ? 'bg-purple-700 text-white font-bold shadow-xs'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Day Range Selector */}
             <div className="pt-2.5 border-t border-gray-100">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -779,6 +888,7 @@ export function Dashboard() {
           industrialContextProfile={selectedHotspot ? industrialContextMap[selectedHotspot.id] : null}
           landCoverProfile={selectedHotspot ? landCoverMap[selectedHotspot.id] : null}
           sentinelProfile={selectedHotspot ? sentinelContextMap[selectedHotspot.id] : null}
+          fusionProfile={selectedHotspot ? fusionMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
           onSyncSentinel={handleSyncSentinel}

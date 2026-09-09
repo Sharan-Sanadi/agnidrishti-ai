@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     analysis,
     firms,
+    fusion,
     hotspots,
     industrial_context,
     land_cover,
@@ -24,4 +25,5 @@ api_router.include_router(persistence.router, tags=["Temporal Persistence"])
 api_router.include_router(industrial_context.router, tags=["Industrial Context Intelligence"])
 api_router.include_router(land_cover.router, tags=["Land-Cover Intelligence"])
 api_router.include_router(sentinel2.router, tags=["Sentinel-2 Satellite Context"])
+api_router.include_router(fusion.router, tags=["Feature Fusion Intelligence"])
 api_router.include_router(analysis.router, prefix="/analyze", tags=["Analysis"])

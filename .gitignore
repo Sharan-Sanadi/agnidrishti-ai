@@ -49,9 +49,13 @@ data/processed/*
 !data/processed/.gitkeep
 data/cache/*
 !data/cache/.gitkeep
+data/exports/*
+!data/exports/.gitkeep
 *.tif
 *.tiff
 *.part
+*.csv
+
 
 # ─── Logs ───
 *.log
@@ -67,3 +71,5 @@ desktop.ini
 
 # ─── Agent / Brain / Artifacts ───
 brain/
+
+data/exports/

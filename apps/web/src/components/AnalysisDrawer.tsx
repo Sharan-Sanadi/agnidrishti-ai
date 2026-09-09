@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees } from 'lucide-react';
+import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees, Layers } from 'lucide-react';
 import {
   AnalysisResponse,
   ThermalObservation,
@@ -7,6 +7,7 @@ import {
   IndustrialContextProfileResponse,
   LandCoverProfileResponse,
   SentinelContextProfileResponse,
+  FusionProfileResponse,
   apiService,
 } from '../services/api';
 
@@ -17,6 +18,7 @@ interface AnalysisDrawerProps {
   industrialContextProfile?: IndustrialContextProfileResponse | null;
   landCoverProfile?: LandCoverProfileResponse | null;
   sentinelProfile?: SentinelContextProfileResponse | null;
+  fusionProfile?: FusionProfileResponse | null;
   loading: boolean;
   onClose: () => void;
   onSyncSentinel?: (observationId: string) => Promise<void>;
@@ -29,6 +31,7 @@ export function AnalysisDrawer({
   industrialContextProfile,
   landCoverProfile,
   sentinelProfile,
+  fusionProfile,
   loading,
   onClose,
   onSyncSentinel,
@@ -728,6 +731,233 @@ export function AnalysisDrawer({
               )}
             </div>
           )}
+
+          {/* PHASE 7 — FEATURE FUSION */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Layers size={16} className="text-violet-600" />
+                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Phase 7 • Feature Fusion
+                </h3>
+              </div>
+              {fusionProfile && (
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                    fusionProfile.fusion_status === 'COMPLETE'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}
+                >
+                  {fusionProfile.fusion_status}
+                </span>
+              )}
+            </div>
+
+            {fusionProfile ? (
+              <div className="bg-violet-50/50 rounded-lg p-3.5 border border-violet-200 text-xs space-y-3">
+                {/* Feature Coverage Progress Banner */}
+                <div className="bg-white p-2.5 rounded border border-violet-100 space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                      Feature Coverage
+                    </span>
+                    <span className="font-black font-mono text-violet-900 text-sm">
+                      {fusionProfile.feature_coverage_percent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-500 ${
+                        fusionProfile.feature_coverage_percent >= 80
+                          ? 'bg-violet-600'
+                          : fusionProfile.feature_coverage_percent >= 50
+                          ? 'bg-amber-500'
+                          : 'bg-red-500'
+                      }`}
+                      style={{ width: `${fusionProfile.feature_coverage_percent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-slate-400">
+                    <span>
+                      {fusionProfile.non_null_feature_count} / {fusionProfile.expected_feature_count} model features
+                    </span>
+                    <span>Schema: {fusionProfile.schema_version}</span>
+                  </div>
+                </div>
+
+                {/* Evidence Groups Status */}
+                <div className="space-y-1 bg-white p-2.5 rounded border border-violet-100 text-[11px]">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    Multi-Modal Evidence Groups
+                  </span>
+                  <div className="grid grid-cols-2 gap-1 text-[10px]">
+                    <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                      <span className="text-slate-600">Thermal (P1)</span>
+                      <span className="font-bold text-emerald-700">AVAILABLE</span>
+                    </div>
+                    <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                      <span className="text-slate-600">Temporal (P3)</span>
+                      <span
+                        className={`font-bold ${
+                          fusionProfile.group_status.TEMPORAL === 'AVAILABLE'
+                            ? 'text-emerald-700'
+                            : fusionProfile.group_status.TEMPORAL === 'PARTIAL'
+                            ? 'text-amber-600'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {fusionProfile.group_status.TEMPORAL}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                      <span className="text-slate-600">Industry (P4)</span>
+                      <span
+                        className={`font-bold ${
+                          fusionProfile.group_status.INDUSTRIAL === 'AVAILABLE'
+                            ? 'text-emerald-700'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {fusionProfile.group_status.INDUSTRIAL}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-1 bg-slate-50 rounded">
+                      <span className="text-slate-600">Land Cover (P5)</span>
+                      <span
+                        className={`font-bold ${
+                          fusionProfile.group_status.LAND_COVER === 'AVAILABLE'
+                            ? 'text-emerald-700'
+                            : fusionProfile.group_status.LAND_COVER === 'PARTIAL'
+                            ? 'text-amber-600'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {fusionProfile.group_status.LAND_COVER}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-between p-1 bg-slate-50 rounded">
+                      <span className="text-slate-600">Sentinel-2 (P6)</span>
+                      <span
+                        className={`font-bold ${
+                          fusionProfile.group_status.SENTINEL === 'AVAILABLE'
+                            ? 'text-emerald-700'
+                            : fusionProfile.group_status.SENTINEL === 'CLOUD_LIMITED'
+                            ? 'text-amber-600'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {fusionProfile.group_status.SENTINEL.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Compact Fused Observables Grid */}
+                <div className="space-y-1 bg-white p-2.5 rounded border border-violet-100 text-[11px]">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block mb-1">
+                    Fused Feature Highlights
+                  </span>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Persistence Index:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {fusionProfile.feature_vector.temporal_persistence_index ?? 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Active Days (30d):</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {fusionProfile.feature_vector.temporal_active_days_30d ?? 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Industry Distance:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {typeof fusionProfile.feature_vector.industrial_nearest_distance_m === 'number'
+                          ? `${fusionProfile.feature_vector.industrial_nearest_distance_m.toFixed(0)}m`
+                          : fusionProfile.feature_vector.industrial_coverage_status === 'UNAVAILABLE'
+                          ? 'UNAVAILABLE'
+                          : 'NONE (<5km)'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Inside Ind. Area:</span>
+                      <span className="font-bold text-slate-800">
+                        {fusionProfile.feature_vector.industrial_inside_area ? 'YES' : 'NO'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Dominant Land:</span>
+                      <span className="font-bold text-slate-800 truncate max-w-[90px]">
+                        {fusionProfile.feature_vector.landcover_dominant_class_500m ?? 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Built-Up / Crop:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {typeof fusionProfile.feature_vector.landcover_builtup_fraction_500m === 'number'
+                          ? `${(fusionProfile.feature_vector.landcover_builtup_fraction_500m * 100).toFixed(0)}%`
+                          : '-'}
+                        {' / '}
+                        {typeof fusionProfile.feature_vector.landcover_cropland_fraction_500m === 'number'
+                          ? `${(fusionProfile.feature_vector.landcover_cropland_fraction_500m * 100).toFixed(0)}%`
+                          : '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Sentinel NDVI (250m):</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {typeof fusionProfile.feature_vector.sentinel_ndvi_median_250m === 'number'
+                          ? fusionProfile.feature_vector.sentinel_ndvi_median_250m.toFixed(3)
+                          : fusionProfile.group_status.SENTINEL === 'CLOUD_LIMITED'
+                          ? 'CLOUD LIMITED'
+                          : 'NOT EVALUATED'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                      <span className="text-slate-500">Sentinel NBR (250m):</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {typeof fusionProfile.feature_vector.sentinel_nbr_median_250m === 'number'
+                          ? fusionProfile.feature_vector.sentinel_nbr_median_250m.toFixed(3)
+                          : '-'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fingerprint & Provenance */}
+                <div className="bg-white p-2.5 rounded border border-violet-100 text-[9.5px] text-slate-400 space-y-0.5">
+                  <div className="flex justify-between">
+                    <span>Source Fingerprint:</span>
+                    <span className="font-mono font-semibold text-slate-600 truncate max-w-[170px]" title={fusionProfile.source_fingerprint}>
+                      {fusionProfile.source_fingerprint.slice(0, 16)}...
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Schema Hash:</span>
+                    <span className="font-mono font-semibold text-slate-600 truncate max-w-[170px]" title={fusionProfile.schema_hash}>
+                      {fusionProfile.schema_hash.slice(0, 16)}...
+                    </span>
+                  </div>
+                </div>
+
+                {/* Scientific Notice */}
+                <div className="p-2 bg-violet-100/60 rounded border border-violet-200 text-[10px] text-violet-900 leading-tight">
+                  <span className="font-bold block mb-0.5">Scientific Notice:</span>
+                  Feature Fusion assembles multi-source evidence for downstream analysis. It does not itself assign fire cause, risk, or probability.
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-center text-slate-500">
+                <Layers size={20} className="mx-auto text-slate-400 mb-1" />
+                <p className="font-semibold">Feature Fusion Profile Not Synced</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Execute Sync Fusion in toolbar to assemble multi-source features for this observation.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

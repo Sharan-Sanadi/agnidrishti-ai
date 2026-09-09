@@ -1,4 +1,5 @@
 # AGNIDRISHTI API — Database Models Export
+from app.db.models.feature_fusion_profile import ThermalFeatureFusionProfileModel
 from app.db.models.firms_coverage import FIRMSDataCoverageModel
 from app.db.models.industrial_context_profile import IndustrialContextProfileModel
 from app.db.models.ingestion_run import IngestionRunModel
@@ -19,4 +20,5 @@ __all__ = [
     "IndustrialContextProfileModel",
     "ThermalLandCoverProfileModel",
     "ThermalSentinelContextProfileModel",
+    "ThermalFeatureFusionProfileModel",
 ]

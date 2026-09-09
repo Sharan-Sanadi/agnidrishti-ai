@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 6 Verified](https://img.shields.io/badge/Status-Phase%206%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 7 Verified](https://img.shields.io/badge/Status-Phase%207%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,13 +15,13 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection), and real Copernicus Sentinel-2 Level-2A BOA optical/NIR/SWIR spectral context retrieval with SCL cloud-masking, strictly prior scene discovery ($\le T_0$), and server-side True Color and SWIR Context preview generation.
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection), real Copernicus Sentinel-2 Level-2A BOA optical/NIR/SWIR spectral context retrieval with SCL cloud-masking, strictly prior scene discovery ($\le T_0$), and zero-weight multi-modal geospatial feature fusion (`fusion_v1`) into unified explainable machine-learning-ready intelligence vectors.
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 6 Verified
+## ⚡ Executive Summary — Phase 7 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -32,7 +32,7 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 4 — Industrial Context** | Server-side OpenStreetMap Overpass client, 9-category industrial taxonomy, PostGIS spatial feature store (`osm_industrial_features`), metric distance (`ST_Distance` geography), polygon containment (`ST_Covers`), 5km full-envelope coverage validation (`osm_context_coverage`), non-destructive Alembic migration, 500-batch ID API with frontend 1500-ID chunking | 🟢 **Verified** |
 | **Phase 5 — Land-Cover Intelligence** | Real ESA WorldCover 10 m 2021 v200 raster integration via cloud-optimized GeoTIFFs, 11-class standard taxonomy, multi-scale circular sampling (250m, 500m, 1000m) with true AEQD projection masks (excluding rectangular window corners), 60% dominance threshold contextual classification (`CROPLAND_DOMINANT`, `TREE_COVER_DOMINANT`, `BUILT_UP_DOMINANT`, `MIXED`, etc.), PostGIS persistence (`thermal_land_cover_profiles`), and UI telemetry drawer visualization | 🟢 **Verified** |
 | **Phase 6 — Sentinel-2 Satellite Context** | Real Copernicus Data Space Ecosystem (CDSE) Sentinel-2 Level-2A BOA reflectance, STAC v1 discovery, strict $\le T_0$ zero-future-leakage prior selection (30-day lookback), SCL 20m cloud masking & dataMask validation, circular AEQD metric analysis (100m, 250m, 500m), robust spectral features (NDVI, NDMI, NBR, B04/B08/B11/B12 medians/percentiles), PostGIS persistence (`thermal_sentinel_context_profiles`), True Color & SWIR Context PNG previews | 🟢 **Verified** |
-| **Phase 7 — Feature Fusion** | Multi-modal fusion of temporal recurrence, industrial proximity, land-cover dominance, and spectral context into unified explainable intelligence | ⏳ **Next Phase** |
+| **Phase 7 — Feature Fusion** | Multi-modal fusion of temporal recurrence, industrial proximity, land-cover dominance, and spectral context into canonical explainable intelligence, versioned feature registry (59 features, 57 model-eligible), deterministic SHA-256 source fingerprinting, strict temporal leakage audits ($\le T_0$), PostGIS persistence (`thermal_feature_fusion_profiles`), CSV matrix export, and telemetry drawer integration | 🟢 **Verified** |
 
 ---
 
@@ -602,6 +602,95 @@ True circular masks using local Azimuthal Equidistant projection around FIRMS co
 
 ---
 
+## 🧬 Phase 7: Multi-Modal Geospatial Feature Fusion (fusion_v1)
+
+Agnidrishti unifies multi-source evidence across all preceding intelligence layers into a canonical, deterministic, versioned machine-readable feature vector (`fusion_v1`) specifically engineered for Phase 8 machine learning fire classification.
+
+```
+                      CANONICAL THERMAL OBSERVATION (T_0)
+                                      │
+    ┌─────────────────┬───────────────┼───────────────┬─────────────────┐
+    ▼                 ▼               ▼               ▼                 ▼
+Phase 1:          Phase 3:        Phase 4:        Phase 5:          Phase 6:
+THERMAL           TEMPORAL        INDUSTRIAL      LAND-COVER        SENTINEL-2
+VIIRS FRP,        30d Spatio-     OSM 5km         WorldCover 10m    CDSE L2A BOA
+Brightness TI4/5, temporal        Metric Prox,    Multi-Scale AEQD  <= T_0, SCL Mask,
+Scan, Track       Recurrence      Containment     Fractions         NDVI, NDMI, NBR
+    └─────────────────┴───────────────┼───────────────┴─────────────────┘
+                                      │
+                                      ▼
+               PURE FEATURE EXTRACTORS & INVARIANT VALIDATORS
+                 • Zero external network calls (Local PostGIS)
+                 • Geographic coordinates (lat/lon) sanitized
+                 • Strict temporal leakage audit (scene <= T_0)
+                 • JSON compliance & NaN/Inf sanitization
+                                      │
+                                      ▼
+                     CANONICAL FEATURE REGISTRY (fusion_v1)
+                 • 59 Total Features (57 Model-Eligible)
+                 • Deterministic SHA-256 Schema Hash
+                 • Deterministic SHA-256 Source Fingerprint
+                                      │
+                                      ▼
+                POSTGIS PERSISTENCE (thermal_feature_fusion_profiles)
+                 • Idempotent ON CONFLICT (observation_id, schema_version)
+                 • Reuses unchanged profiles in < 0.1s
+                                      │
+                 ┌────────────────────┴────────────────────┐
+                 ▼                                         ▼
+       NEXT.JS 16 DASHBOARD                      CANONICAL CSV MATRIX
+    • Telemetry Drawer Progress Bar            • export_fusion_matrix.py
+    • Multi-Modal Evidence Status Badges       • Deterministic Header & Sort
+    • Complete / Partial Filter                • Honest Empty Strings for NULL
+```
+
+### 1. Scientific Principles & Zero-Weight Philosophy
+
+> [!IMPORTANT]
+> **Zero-Weight Contract**: Agnidrishti strictly rejects arbitrary heuristic weighting formulas (e.g. $0.3 \times \text{temperature} + 0.4 \times \text{proximity} + 0.3 \times \text{landcover}$). Heuristic combinations lack physical and statistical foundation. Feature Fusion functions exclusively as an **evidence aggregator and normalizer**. All decision boundaries, classification probabilities, and feature importances are delegated to mathematically principled Phase 8 machine learning models (XGBoost, Random Forest, LightGBM) trained on canonical feature matrices.
+
+- **Honest Nullability & Zero Sentinels**: When an upstream modality is unavailable (e.g., cloud cover preventing Sentinel-2 optical observation, or region outside evaluated industrial coverage), values remain strictly `None` (empty string in CSV). No synthetic numeric sentinels (`-999`, `-1`, or fabricated `0.0`) are permitted.
+- **Geographic Sanitization**: Raw spatial coordinates (`latitude`, `longitude`) are stripped from `model_eligible` feature vectors to eliminate spatial memorization and overfitting. The model learns physical spatial relationships (distances, areas, land-cover fractions) rather than coordinate boundaries.
+- **Deterministic SHA-256 Schema Hashing**: The canonical registry computes a cryptographic digest (`schema_hash`) over feature names, types, nullability, and order. Profiles verified against `b4f4d0f23b07a2816c0d69a133ab5495dd51aed5fe4c7ef7c865c864efb5064d` guarantee identical column alignment.
+- **Deterministic Source Fingerprinting**: A SHA-256 digest of upstream feature values, statuses, and model versions detects data modifications. Unchanged observations are reused with zero recomputation.
+
+### 2. Evidence Groups & 59 Canonical Features
+
+The canonical schema comprises **59 features** (**57 model-eligible** features + 2 metadata tracking keys):
+
+| Group | Phase | Model Features | Physical & Statistical Signatures |
+| :--- | :---: | :---: | :--- |
+| **THERMAL** | Phase 1 | 6 | `thermal_frp` (MW), `thermal_brightness_ti4` (K), `thermal_brightness_ti5` (K), `thermal_scan` (km), `thermal_track` (km), `thermal_confidence` |
+| **TEMPORAL** | Phase 3 | 10 | `temporal_persistence_index` (0-100), `temporal_persistence_class`, `temporal_active_days_7d`, `temporal_active_days_30d`, `temporal_active_weeks_30d`, `temporal_span_days_30d`, `temporal_coverage_ratio_30d`, `temporal_detection_count_30d` |
+| **INDUSTRIAL** | Phase 4 | 13 | `industrial_context_class`, `industrial_coverage_status`, `industrial_nearest_distance_m`, `industrial_inside_area`, `industrial_nearest_category`, `industrial_feature_count_500m`, `industrial_feature_count_1km`, `industrial_feature_count_5km`, `industrial_has_flare_nearby`, `industrial_has_chimney_nearby`, `industrial_has_refinery_nearby`, `industrial_has_power_plant_nearby` |
+| **LAND_COVER** | Phase 5 | 15 | `landcover_point_code`, `landcover_point_class`, `landcover_context_class`, `landcover_coverage_status`, `landcover_dominant_class_500m`, `landcover_dominant_fraction_500m`, `landcover_tree_fraction_500m`, `landcover_shrub_fraction_500m`, `landcover_grass_fraction_500m`, `landcover_cropland_fraction_500m`, `landcover_builtup_fraction_500m`, `landcover_bare_fraction_500m`, `landcover_water_fraction_500m`, `landcover_wetland_fraction_500m` |
+| **SENTINEL** | Phase 6 | 13 | `sentinel_quality_status`, `sentinel_provider_status`, `sentinel_scene_age_days`, `sentinel_valid_fraction_250m`, `sentinel_cloud_fraction_250m`, `sentinel_b04_median_250m`, `sentinel_b08_median_250m`, `sentinel_b11_median_250m`, `sentinel_b12_median_250m`, `sentinel_ndvi_median_250m`, `sentinel_ndmi_median_250m`, `sentinel_nbr_median_250m`, `sentinel_b11_p90_250m`, `sentinel_b12_p90_250m` |
+
+### 3. Completeness Tiers & Group Statuses
+
+- **`COMPLETE`**: All 5 multi-modal evidence groups (`THERMAL`, `TEMPORAL`, `INDUSTRIAL`, `LAND_COVER`, `SENTINEL`) contain valid, usable physical evidence.
+- **`PARTIAL`**: Upstream observation has valid thermal data and partial modality evaluations, but one or more groups are missing, cloud-limited, or outside coverage.
+- **Usable Group Metric**: Transparent integer tracking of evaluated physical dimensions ($N/5$).
+
+### 4. Production API Endpoints
+
+- `GET /api/v1/fusion/schema`: Returns canonical registry, 59 feature specs, types, units, and SHA-256 schema hash.
+- `GET /api/v1/observations/{id}/fusion`: Retrieves single observation feature vector, group status, coverage percentage, and provenance.
+- `POST /api/v1/fusion/batch`: Bulk retrieval of cached fusion profiles in a single query ($\le 500$ IDs, zero N+1 queries).
+- `POST /api/v1/fusion/sync`: Bulk assembly, validation, fingerprinting, and upsert ($\le 500$ IDs, zero external network calls).
+
+### 5. CSV Matrix Export Utility
+
+Export canonical, ML-ready feature matrices for Phase 8 offline training:
+
+```bash
+cd services/api
+uv run python scripts/export_fusion_matrix.py --output ../../data/exports/fusion_v1_matrix.csv
+# Exported 1538 fusion profiles to data/exports/fusion_v1_matrix.csv
+```
+
+---
+
 ## 🧪 Testing & Validation Suite
 
 Agnidrishti incorporates rigorous automated testing covering unit normalization, API contracts, and real PostGIS integration.
@@ -610,7 +699,7 @@ Agnidrishti incorporates rigorous automated testing covering unit normalization,
 ```bash
 cd services/api
 
-# Run comprehensive test suite (123 tests passing)
+# Run comprehensive test suite (150 tests passing)
 uv run pytest -v
 
 # Run code linter
@@ -640,8 +729,8 @@ pnpm build:web
 [Phase 4] Industrial Context (OSM) ──────────────► 🟢 VERIFIED
 [Phase 5] Land-Cover Intelligence (WorldCover) ─► 🟢 VERIFIED
 [Phase 6] Sentinel-2 Satellite Context (CDSE) ──► 🟢 VERIFIED
-[Phase 7] Geospatial Feature Fusion ─────────────► ⏳ NEXT UP
-[Phase 8] ML Industrial Fire Classification ─────► ⬜ PLANNED
+[Phase 7] Geospatial Feature Fusion ─────────────► 🟢 VERIFIED
+[Phase 8] ML Industrial Fire Classification ─────► ⏳ NEXT UP
 [Phase 9] Explainability & Attribution ──────────► ⬜ PLANNED
 [Phase 10] AgniRisk Anomaly Event Scoring ───────► ⬜ PLANNED
 [Phase 11] Command Center UI & Mapbox/Leaflet ───► ⬜ PLANNED

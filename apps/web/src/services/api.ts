@@ -427,6 +427,82 @@ export interface SentinelSyncResponse {
   profiles: Record<string, SentinelContextProfileResponse>;
 }
 
+export type FusionStatus = 'COMPLETE' | 'PARTIAL' | 'NOT_EVALUATED';
+export type FusionGroupStatus = 'AVAILABLE' | 'PARTIAL' | 'UNAVAILABLE' | 'CLOUD_LIMITED' | 'NOT_EVALUATED';
+export type EvidenceGroupStatus = FusionGroupStatus;
+
+export type FusionFeatureValue = string | number | boolean | null;
+export type FusionFeatureVector = Record<string, FusionFeatureValue>;
+
+export interface FusionFeatureSpec {
+  name: string;
+  group: string;
+  source_phase: string;
+  source_field: string;
+  dtype: string;
+  unit: string;
+  nullable: boolean;
+  model_eligible: boolean;
+  description: string;
+}
+
+export interface FusionSchemaResponse {
+  schema_version: string;
+  schema_hash: string;
+  total_features: number;
+  model_eligible_features: number;
+  features: FusionFeatureSpec[];
+}
+export type FusionSchema = FusionSchemaResponse;
+
+export interface FusionProfileResponse {
+  observation_id: string;
+  schema_version: string;
+  schema_hash: string;
+  source_fingerprint: string;
+  fusion_status: FusionStatus;
+  total_group_count: number;
+  evaluated_group_count: number;
+  usable_group_count: number;
+  expected_feature_count: number;
+  non_null_feature_count: number;
+  feature_coverage_fraction: number;
+  feature_coverage_percent: number;
+  feature_vector: FusionFeatureVector;
+  group_status: {
+    THERMAL: FusionGroupStatus;
+    TEMPORAL: FusionGroupStatus;
+    INDUSTRIAL: FusionGroupStatus;
+    LAND_COVER: FusionGroupStatus;
+    SENTINEL: FusionGroupStatus;
+  };
+  provenance: Record<string, unknown>;
+  quality_flags: string[];
+  generated_at: string;
+  updated_at: string;
+}
+export type FusionProfile = FusionProfileResponse;
+
+export interface BatchFusionResponse {
+  schema_version: string;
+  count: number;
+  profiles: Record<string, FusionProfileResponse>;
+}
+export type FusionBatchResponse = BatchFusionResponse;
+
+export interface SyncFusionResponse {
+  requested: number;
+  created: number;
+  updated: number;
+  reused: number;
+  complete: number;
+  partial: number;
+  missing_upstream_groups: Record<string, number>;
+  duration_ms: number;
+  database_queries: number;
+}
+export type FusionSyncResponse = SyncFusionResponse;
+
 export const apiService = {
   async getFIRMSHotspots(params?: {
     west?: number;
@@ -687,5 +763,110 @@ export const apiService = {
 
   getSentinelPreviewUrl(observationId: string, mode: 'true_color' | 'swir_context'): string {
     return `${API_BASE_URL}/observations/${observationId}/sentinel-2/preview?mode=${mode}`;
+  },
+
+  async getObservationFusion(observationId: string, schemaVersion: string = 'fusion_v1'): Promise<FusionProfileResponse> {
+    const response = await apiClient.get<FusionProfileResponse>(`/observations/${observationId}/fusion`, {
+      params: { schema_version: schemaVersion },
+    });
+    return response.data;
+  },
+
+  async getBatchFusion(observationIds: string[], schemaVersion: string = 'fusion_v1'): Promise<BatchFusionResponse> {
+    const CHUNK_SIZE = 500;
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchFusionResponse>('/fusion/batch', {
+        observation_ids: observationIds,
+        schema_version: schemaVersion,
+      });
+      return response.data;
+    }
+
+    const mergedProfiles: Record<string, FusionProfileResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<BatchFusionResponse>('/fusion/batch', {
+          observation_ids: chunk,
+          schema_version: schemaVersion,
+        });
+        if (response.data?.profiles) {
+          Object.assign(mergedProfiles, response.data.profiles);
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 7 Batch Fusion] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      schema_version: schemaVersion,
+      count: Object.keys(mergedProfiles).length,
+      profiles: mergedProfiles,
+    };
+  },
+
+  async syncFusion(params: {
+    observation_ids: string[];
+    force_recompute?: boolean;
+  }): Promise<SyncFusionResponse> {
+    const CHUNK_SIZE = 500;
+    const observationIds = params.observation_ids;
+
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<SyncFusionResponse>('/fusion/sync', params);
+      return response.data;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let reused = 0;
+    let complete = 0;
+    let partial = 0;
+    let duration_ms = 0;
+    let database_queries = 0;
+    const missing: Record<string, number> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<SyncFusionResponse>('/fusion/sync', {
+          observation_ids: chunk,
+          force_recompute: params.force_recompute,
+        });
+        const d = response.data;
+        created += d.created;
+        updated += d.updated;
+        reused += d.reused;
+        complete += d.complete;
+        partial += d.partial;
+        duration_ms += d.duration_ms;
+        database_queries += d.database_queries;
+        if (d.missing_upstream_groups) {
+          for (const [k, v] of Object.entries(d.missing_upstream_groups)) {
+            missing[k] = (missing[k] || 0) + v;
+          }
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 7 Sync Fusion] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      requested: observationIds.length,
+      created,
+      updated,
+      reused,
+      complete,
+      partial,
+      missing_upstream_groups: missing,
+      duration_ms: Math.round(duration_ms * 100) / 100,
+      database_queries,
+    };
+  },
+
+  async getFusionSchema(): Promise<FusionSchemaResponse> {
+    const response = await apiClient.get<FusionSchemaResponse>('/fusion/schema');
+    return response.data;
   },
 };

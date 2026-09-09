@@ -1,4 +1,4 @@
-import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite } from 'lucide-react';
+import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite, Layers } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
@@ -7,6 +7,8 @@ interface StatsCardsProps {
   landCoverEvaluated?: number;
   sentinelEvaluated?: number;
   sentinelClear?: number;
+  fusionComplete?: number;
+  fusionPartial?: number;
   highRisk?: number;
   isLive?: boolean;
   noaa20?: number;
@@ -20,6 +22,8 @@ export function StatsCards({
   landCoverEvaluated = 0,
   sentinelEvaluated = 0,
   sentinelClear = 0,
+  fusionComplete = 0,
+  fusionPartial = 0,
   highRisk = 0,
   isLive = true,
   noaa20 = 0,
@@ -27,7 +31,7 @@ export function StatsCards({
 }: StatsCardsProps) {
   if (isLive) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4 z-10 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 p-4 z-10 w-full">
         <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
           <div className="p-2.5 bg-red-100 text-red-600 rounded-full shrink-0">
             <Flame size={22} />
@@ -79,6 +83,23 @@ export function StatsCards({
               {sentinelClear > 0 && (
                 <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
                   {sentinelClear} CLR
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
+          <div className="p-2.5 bg-violet-100 text-violet-700 rounded-full shrink-0">
+            <Layers size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-violet-800 font-semibold uppercase tracking-wider truncate">Phase 7 • Feature Fusion</p>
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-xl font-black text-violet-950">{fusionComplete}</p>
+              {fusionPartial > 0 && (
+                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                  {fusionPartial} PARTIAL
                 </span>
               )}
             </div>
