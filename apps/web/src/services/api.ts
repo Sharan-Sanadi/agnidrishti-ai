@@ -503,6 +503,75 @@ export interface SyncFusionResponse {
 }
 export type FusionSyncResponse = SyncFusionResponse;
 
+export type ClassificationStatus =
+  | 'AVAILABLE'
+  | 'INSUFFICIENT_EVIDENCE'
+  | 'MODEL_UNAVAILABLE'
+  | 'MODEL_INVALID'
+  | 'SCHEMA_MISMATCH'
+  | 'ERROR';
+
+export type ThermalContextClass =
+  | 'INDUSTRIAL_THERMAL_CONTEXT'
+  | 'AGRICULTURAL_THERMAL_CONTEXT'
+  | 'NATURAL_VEGETATION_THERMAL_CONTEXT'
+  | 'BUILT_NON_INDUSTRIAL_CONTEXT'
+  | 'MIXED_THERMAL_CONTEXT';
+
+export interface ClassificationPredictionResponse {
+  observation_id: string;
+  classification_status: ClassificationStatus;
+  predicted_class: ThermalContextClass | null;
+  class_score: number | null;
+  class_probabilities: Record<string, number> | null;
+  evidence_coverage: number | null;
+  validation_status: string;
+  model_version: string;
+  fusion_schema_version: string;
+  fusion_schema_hash: string;
+  fusion_source_fingerprint: string;
+  predicted_at: string;
+}
+
+export interface BatchClassificationResponse {
+  model_version: string;
+  count: number;
+  predictions: Record<string, ClassificationPredictionResponse>;
+}
+
+export interface SyncClassificationResponse {
+  requested: number;
+  created: number;
+  updated: number;
+  reused: number;
+  available: number;
+  insufficient_evidence: number;
+  class_distribution: Record<string, number>;
+  duration_ms: number;
+  database_queries: number;
+}
+
+export interface ClassificationModelMetadataResponse {
+  model_version: string;
+  model_family: string;
+  validation_status: string;
+  trained_at: string;
+  fusion_schema_version: string;
+  fusion_schema_hash: string;
+  training_dataset_fingerprint: string;
+  classes: string[];
+  features: string[];
+  metrics: {
+    macro_f1: number;
+    weighted_f1: number;
+    balanced_accuracy: number;
+    per_class?: Record<string, { precision: number; recall: number; f1_score: number; support: number }>;
+    confusion_matrix?: Record<string, Record<string, number>>;
+    evaluation_type?: string;
+  };
+  artifact_hash: string;
+}
+
 export const apiService = {
   async getFIRMSHotspots(params?: {
     west?: number;
@@ -867,6 +936,113 @@ export const apiService = {
 
   async getFusionSchema(): Promise<FusionSchemaResponse> {
     const response = await apiClient.get<FusionSchemaResponse>('/fusion/schema');
+    return response.data;
+  },
+
+  async getObservationClassification(observationId: string): Promise<ClassificationPredictionResponse> {
+    const response = await apiClient.get<ClassificationPredictionResponse>(`/observations/${observationId}/classification`);
+    return response.data;
+  },
+
+  async getBatchClassifications(
+    observationIds: string[],
+    modelVersion: string = 'agnidrishti_context_classifier_v1'
+  ): Promise<BatchClassificationResponse> {
+    const CHUNK_SIZE = 500;
+
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchClassificationResponse>('/classification/batch', {
+        observation_ids: observationIds,
+        model_version: modelVersion,
+      });
+      return response.data;
+    }
+
+    const mergedPredictions: Record<string, ClassificationPredictionResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<BatchClassificationResponse>('/classification/batch', {
+          observation_ids: chunk,
+          model_version: modelVersion,
+        });
+        if (response.data?.predictions) {
+          Object.assign(mergedPredictions, response.data.predictions);
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 8 Batch Classification] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      model_version: modelVersion,
+      count: Object.keys(mergedPredictions).length,
+      predictions: mergedPredictions,
+    };
+  },
+
+  async syncClassifications(params: {
+    observation_ids: string[];
+    force_recompute?: boolean;
+  }): Promise<SyncClassificationResponse> {
+    const CHUNK_SIZE = 500;
+    const observationIds = params.observation_ids;
+
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<SyncClassificationResponse>('/classification/sync', params);
+      return response.data;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let reused = 0;
+    let available = 0;
+    let insufficient = 0;
+    let duration_ms = 0;
+    let database_queries = 0;
+    const classDist: Record<string, number> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<SyncClassificationResponse>('/classification/sync', {
+          observation_ids: chunk,
+          force_recompute: params.force_recompute,
+        });
+        const d = response.data;
+        created += d.created;
+        updated += d.updated;
+        reused += d.reused;
+        available += d.available;
+        insufficient += d.insufficient_evidence;
+        duration_ms += d.duration_ms;
+        database_queries += d.database_queries;
+        if (d.class_distribution) {
+          for (const [k, v] of Object.entries(d.class_distribution)) {
+            classDist[k] = (classDist[k] || 0) + v;
+          }
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 8 Sync Classification] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      requested: observationIds.length,
+      created,
+      updated,
+      reused,
+      available,
+      insufficient_evidence: insufficient,
+      class_distribution: classDist,
+      duration_ms: Math.round(duration_ms * 100) / 100,
+      database_queries,
+    };
+  },
+
+  async getClassificationModelMetadata(): Promise<ClassificationModelMetadataResponse> {
+    const response = await apiClient.get<ClassificationModelMetadataResponse>('/classification/model');
     return response.data;
   },
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees, Layers } from 'lucide-react';
+import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees, Layers, BrainCircuit } from 'lucide-react';
 import {
   AnalysisResponse,
   ThermalObservation,
@@ -8,6 +8,7 @@ import {
   LandCoverProfileResponse,
   SentinelContextProfileResponse,
   FusionProfileResponse,
+  ClassificationPredictionResponse,
   apiService,
 } from '../services/api';
 
@@ -19,6 +20,7 @@ interface AnalysisDrawerProps {
   landCoverProfile?: LandCoverProfileResponse | null;
   sentinelProfile?: SentinelContextProfileResponse | null;
   fusionProfile?: FusionProfileResponse | null;
+  classificationProfile?: ClassificationPredictionResponse | null;
   loading: boolean;
   onClose: () => void;
   onSyncSentinel?: (observationId: string) => Promise<void>;
@@ -32,6 +34,7 @@ export function AnalysisDrawer({
   landCoverProfile,
   sentinelProfile,
   fusionProfile,
+  classificationProfile,
   loading,
   onClose,
   onSyncSentinel,
@@ -954,6 +957,129 @@ export function AnalysisDrawer({
                 <p className="font-semibold">Feature Fusion Profile Not Synced</p>
                 <p className="text-[10px] text-slate-400 mt-0.5">
                   Execute Sync Fusion in toolbar to assemble multi-source features for this observation.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Phase 8: Intelligent Classification Engine */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <BrainCircuit size={15} className="text-rose-600" />
+              Classification — Phase 8
+            </h3>
+            {classificationProfile && (
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${
+                  classificationProfile.classification_status === 'AVAILABLE'
+                    ? 'bg-rose-50 text-rose-800 border-rose-200'
+                    : classificationProfile.classification_status === 'INSUFFICIENT_EVIDENCE'
+                    ? 'bg-amber-50 text-amber-800 border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                }`}
+              >
+                {classificationProfile.classification_status.replace(/_/g, ' ')}
+              </span>
+            )}
+          </div>
+
+          <div className="bg-rose-50/40 rounded-lg p-3 border border-rose-200/80 space-y-3">
+            {classificationProfile ? (
+              <div className="space-y-3">
+                {/* Archetype Class & Score */}
+                <div className="bg-white p-3 rounded-md border border-rose-100 shadow-sm">
+                  <span className="text-[10px] text-rose-700 font-bold uppercase tracking-wider block mb-1">
+                    Thermal Context Archetype
+                  </span>
+                  <p className="text-base font-black text-slate-900 leading-tight">
+                    {classificationProfile.predicted_class
+                      ? classificationProfile.predicted_class.replace(/_/g, ' ')
+                      : 'INSUFFICIENT EVIDENCE'}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-2 mt-2.5 pt-2 border-t border-rose-50 text-xs">
+                    <div>
+                      <span className="text-[10.5px] text-slate-500 block">Model Score</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        {classificationProfile.class_score != null
+                          ? `${(classificationProfile.class_score * 100).toFixed(0)}%`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10.5px] text-slate-500 block">Feature Coverage</span>
+                      <span className="font-bold text-slate-900 text-sm">
+                        {classificationProfile.evidence_coverage != null
+                          ? `${(classificationProfile.evidence_coverage * 100).toFixed(0)}%`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Model Metadata */}
+                <div className="bg-white p-2.5 rounded-md border border-rose-100 text-xs space-y-1.5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500">Model:</span>
+                    <span className="font-mono font-semibold text-slate-700">{classificationProfile.model_version}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-500">Validation:</span>
+                    <span className="font-bold text-rose-700 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200 text-[10px]">
+                      {classificationProfile.validation_status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Class Probabilities Distribution */}
+                {classificationProfile.class_probabilities && (
+                  <div className="bg-white p-2.5 rounded-md border border-rose-100 text-xs space-y-1.5">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">
+                      Context Probability Distribution
+                    </span>
+                    <div className="space-y-1">
+                      {Object.entries(classificationProfile.class_probabilities).map(([cName, prob]) => (
+                        <div key={cName} className="space-y-0.5">
+                          <div className="flex justify-between text-[10.5px]">
+                            <span className="text-slate-600 font-medium truncate max-w-[200px]">
+                              {cName.replace('_THERMAL_CONTEXT', '').replace('_CONTEXT', '').replace(/_/g, ' ')}
+                            </span>
+                            <span className="font-mono font-bold text-slate-800">
+                              {(prob * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-rose-500 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.max(prob * 100, 2)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scientific Disclaimer */}
+                <div className="p-2 bg-rose-100/60 rounded border border-rose-200 text-[10px] text-rose-900 leading-tight space-y-1">
+                  <p>
+                    <span className="font-bold">Scientific Notice:</span> Phase 8 classifies thermal-context archetypes from multi-source evidence. It does not independently confirm fire cause.
+                  </p>
+                  {classificationProfile.validation_status.includes('WEAK') && (
+                    <p className="text-rose-800/90 italic">
+                      Prototype model trained partly from conservative weak labels.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-center text-slate-500">
+                <BrainCircuit size={20} className="mx-auto text-slate-400 mb-1" />
+                <p className="font-semibold">Classification Profile Not Synced</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Execute Sync Classification in dashboard to run model inference for this observation.
                 </p>
               </div>
             )}

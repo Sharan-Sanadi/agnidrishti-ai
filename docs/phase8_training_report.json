@@ -1,0 +1,200 @@
+{
+  "training_metadata": {
+    "timestamp": "2026-09-09T16:26:42.380174+00:00",
+    "duration_seconds": 2.84,
+    "model_version": "agnidrishti_context_classifier_v1",
+    "model_family": "hist_gradient_boosting",
+    "validation_status": "WEAK_SUPERVISION_PROTOTYPE",
+    "dataset_fingerprint": "98783d8f325f9361c892670a1675044500439a73e7215a6f98860ac227fe6957",
+    "artifact_sha256": "28040c6bc54a86fae48d6606bbfb3fa32657ea04cd402c93e9bd438d2add49ba",
+    "artifact_size_bytes": 162333
+  },
+  "labels": {
+    "total_profiles": 1538,
+    "verified_labels": 0,
+    "weak_labels": 618,
+    "unlabeled": 920,
+    "conflicts": 0,
+    "class_counts": {
+      "INDUSTRIAL_THERMAL_CONTEXT": 132,
+      "NATURAL_VEGETATION_THERMAL_CONTEXT": 112,
+      "MIXED_THERMAL_CONTEXT": 258,
+      "AGRICULTURAL_THERMAL_CONTEXT": 43,
+      "BUILT_NON_INDUSTRIAL_CONTEXT": 73
+    }
+  },
+  "dataset": {
+    "total_labeled_samples": 618,
+    "train_samples": 398,
+    "val_samples": 89,
+    "test_samples": 131,
+    "spatial_groups": 195,
+    "classes": [
+      "INDUSTRIAL_THERMAL_CONTEXT",
+      "AGRICULTURAL_THERMAL_CONTEXT",
+      "NATURAL_VEGETATION_THERMAL_CONTEXT",
+      "BUILT_NON_INDUSTRIAL_CONTEXT",
+      "MIXED_THERMAL_CONTEXT"
+    ]
+  },
+  "candidate_models": {
+    "dummy": {
+      "macro_f1": 0.124,
+      "weighted_f1": 0.2787,
+      "balanced_accuracy": 0.2
+    },
+    "logistic_regression": {
+      "macro_f1": 0.9238,
+      "weighted_f1": 0.9445,
+      "balanced_accuracy": 0.9274
+    },
+    "random_forest": {
+      "macro_f1": 0.9888,
+      "weighted_f1": 0.9889,
+      "balanced_accuracy": 0.995
+    },
+    "hist_gradient_boosting": {
+      "macro_f1": 1.0,
+      "weighted_f1": 1.0,
+      "balanced_accuracy": 1.0
+    }
+  },
+  "test_metrics": {
+    "macro_f1": 0.9807,
+    "weighted_f1": 0.9849,
+    "balanced_accuracy": 0.9944,
+    "per_class": {
+      "INDUSTRIAL_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 4
+      },
+      "AGRICULTURAL_THERMAL_CONTEXT": {
+        "precision": 0.9091,
+        "recall": 1.0,
+        "f1_score": 0.9524,
+        "support": 10
+      },
+      "NATURAL_VEGETATION_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 32
+      },
+      "BUILT_NON_INDUSTRIAL_CONTEXT": {
+        "precision": 0.9333,
+        "recall": 1.0,
+        "f1_score": 0.9655,
+        "support": 14
+      },
+      "MIXED_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 0.9718,
+        "f1_score": 0.9857,
+        "support": 71
+      }
+    },
+    "confusion_matrix": {
+      "INDUSTRIAL_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 4,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "AGRICULTURAL_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 10,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "NATURAL_VEGETATION_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 32,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "BUILT_NON_INDUSTRIAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 14,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "MIXED_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 1,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 1,
+        "MIXED_THERMAL_CONTEXT": 69
+      }
+    },
+    "class_names": [
+      "INDUSTRIAL_THERMAL_CONTEXT",
+      "AGRICULTURAL_THERMAL_CONTEXT",
+      "NATURAL_VEGETATION_THERMAL_CONTEXT",
+      "BUILT_NON_INDUSTRIAL_CONTEXT",
+      "MIXED_THERMAL_CONTEXT"
+    ],
+    "total_eval_samples": 131,
+    "evaluation_type": "WEAK-LABEL AGREEMENT"
+  },
+  "feature_missingness": {
+    "thermal_frp": 0.0,
+    "thermal_brightness_ti4": 0.0,
+    "thermal_brightness_ti5": 0.0,
+    "thermal_scan": 0.0,
+    "thermal_track": 0.0,
+    "thermal_daynight": 0.0,
+    "thermal_satellite": 0.0,
+    "thermal_instrument": 0.0,
+    "thermal_confidence": 0.0,
+    "temporal_persistence_index": 0.0,
+    "temporal_persistence_class": 0.0,
+    "temporal_active_days_7d": 0.0,
+    "temporal_active_days_30d": 0.0,
+    "temporal_active_weeks_30d": 0.0,
+    "temporal_span_days_30d": 0.0,
+    "temporal_coverage_ratio_30d": 0.0,
+    "temporal_detection_count_30d": 0.0,
+    "industrial_coverage_status": 0.0,
+    "industrial_nearest_distance_m": 0.7864,
+    "industrial_inside_area": 0.0,
+    "industrial_nearest_category": 0.7864,
+    "industrial_feature_count_500m": 0.0,
+    "industrial_feature_count_1km": 0.0,
+    "industrial_feature_count_5km": 0.0,
+    "industrial_has_flare_nearby": 0.0,
+    "industrial_has_chimney_nearby": 0.0,
+    "industrial_has_refinery_nearby": 0.0,
+    "industrial_has_power_plant_nearby": 0.0,
+    "landcover_point_code": 0.0097,
+    "landcover_coverage_status": 0.0,
+    "landcover_dominant_fraction_500m": 0.0097,
+    "landcover_tree_fraction_500m": 0.0097,
+    "landcover_shrub_fraction_500m": 0.0097,
+    "landcover_grass_fraction_500m": 0.0097,
+    "landcover_cropland_fraction_500m": 0.0097,
+    "landcover_builtup_fraction_500m": 0.0097,
+    "landcover_bare_fraction_500m": 0.0097,
+    "landcover_water_fraction_500m": 0.0097,
+    "landcover_wetland_fraction_500m": 0.0097,
+    "sentinel_quality_status": 0.9579,
+    "sentinel_provider_status": 0.0,
+    "sentinel_scene_age_days": 0.9595,
+    "sentinel_valid_fraction_250m": 0.9595,
+    "sentinel_cloud_fraction_250m": 1.0,
+    "sentinel_b04_median_250m": 0.966,
+    "sentinel_b08_median_250m": 0.966,
+    "sentinel_b11_median_250m": 0.966,
+    "sentinel_b12_median_250m": 0.966,
+    "sentinel_ndvi_median_250m": 0.966,
+    "sentinel_ndmi_median_250m": 0.966,
+    "sentinel_nbr_median_250m": 0.966,
+    "sentinel_b11_p90_250m": 0.966,
+    "sentinel_b12_p90_250m": 0.966
+  }
+}

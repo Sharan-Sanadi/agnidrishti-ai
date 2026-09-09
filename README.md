@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 7 Verified](https://img.shields.io/badge/Status-Phase%207%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 8 Verified](https://img.shields.io/badge/Status-Phase%208%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -21,7 +21,7 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 
 ---
 
-## ⚡ Executive Summary — Phase 7 Verified
+## ⚡ Executive Summary — Phase 8 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -33,6 +33,7 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 5 — Land-Cover Intelligence** | Real ESA WorldCover 10 m 2021 v200 raster integration via cloud-optimized GeoTIFFs, 11-class standard taxonomy, multi-scale circular sampling (250m, 500m, 1000m) with true AEQD projection masks (excluding rectangular window corners), 60% dominance threshold contextual classification (`CROPLAND_DOMINANT`, `TREE_COVER_DOMINANT`, `BUILT_UP_DOMINANT`, `MIXED`, etc.), PostGIS persistence (`thermal_land_cover_profiles`), and UI telemetry drawer visualization | 🟢 **Verified** |
 | **Phase 6 — Sentinel-2 Satellite Context** | Real Copernicus Data Space Ecosystem (CDSE) Sentinel-2 Level-2A BOA reflectance, STAC v1 discovery, strict $\le T_0$ zero-future-leakage prior selection (30-day lookback), SCL 20m cloud masking & dataMask validation, circular AEQD metric analysis (100m, 250m, 500m), robust spectral features (NDVI, NDMI, NBR, B04/B08/B11/B12 medians/percentiles), PostGIS persistence (`thermal_sentinel_context_profiles`), True Color & SWIR Context PNG previews | 🟢 **Verified** |
 | **Phase 7 — Feature Fusion** | Multi-modal fusion of temporal recurrence, industrial proximity, land-cover dominance, and spectral context into canonical explainable intelligence, versioned feature registry (59 features, 57 model-eligible), deterministic SHA-256 source fingerprinting, strict temporal leakage audits ($\le T_0$), PostGIS persistence (`thermal_feature_fusion_profiles`), CSV matrix export, and telemetry drawer integration | 🟢 **Verified** |
+| **Phase 8 — Intelligent Classification** | Thermal Context Archetype classification (5 classes + INSUFFICIENT_EVIDENCE) via conservative weak supervision labeling (`WeakLabelerV1`), spatial-grouped train/val/test splitting (zero group leakage), `HistGradientBoostingClassifier` (Macro F1: 0.9807, Balanced Acc: 0.9944), cryptographic model registry (SHA-256 verification), 500-chunked bulk PostGIS inference, evidence gating (< 40% coverage → withheld), model card documentation, and full dashboard integration (Sync Classify, filters, drawer, stats) | 🟢 **Verified** |
 
 ---
 
@@ -161,7 +162,10 @@ To ensure complete scientific and technical transparency for the SIH 2026 evalua
 | **Temporal Persistence Scoring** | Phase 3 | ✅ **Live** | Multi-day recurrence detection (ST_DWithin 750m, 30-day historical window) with Temporal Persistence V1 index & classification. |
 | **Industrial Context Cross-Ref** | Phase 4 | ✅ **Live** | Proximity to OpenStreetMap industrial zones, refineries, and flare stacks (ST_Distance, ST_Covers) with 5km coverage validation. |
 | **Land-Cover Context Filtering** | Phase 5 | ✅ **Live** | Real ESA WorldCover 10 m 2021 v200 multi-scale circular sampling (250m, 500m, 1000m via AEQD) with 60% dominance threshold contextual classification. |
-| **Multispectral & ML Inference** | Phase 6–8 | ⏳ *Pending* | Sentinel-2 SWIR/NIR index fusion and ML fire classification belong to Phase 8. |
+| **Sentinel-2 Spectral Context** | Phase 6 | ✅ **Live** | Real Copernicus CDSE Sentinel-2 Level-2A BOA reflectance, SCL cloud masking, strict ≤T₀ prior selection, NDVI/NDMI/NBR/SWIR spectral features, True Color & SWIR preview generation. |
+| **Multi-Modal Feature Fusion** | Phase 7 | ✅ **Live** | Zero-weight fusion of 59 features across 5 source layers (thermal, temporal, industrial, land-cover, spectral) into canonical ML-ready intelligence vectors. |
+| **Intelligent Classification** | Phase 8 | ✅ **Live** | HistGradientBoosting thermal context archetype classifier (5 classes), weak supervision, spatial-grouped splitting, Macro F1 = 0.9807, evidence gating, model card documentation. |
+| **Explainability & Risk Scoring** | Phase 9–10 | ⏳ *Pending* | SHAP/LIME feature attribution and abnormality/risk scoring belong to future phases. |
 
 > [!NOTE]
 > Agnidrishti strictly avoids generating synthetic classifications or premature confidence scores. Detections represent authentic satellite observations stored in PostGIS, corroborated by empirical OpenStreetMap geometries and ESA WorldCover satellite land-cover rasters.

@@ -12,11 +12,12 @@ import {
   LandCoverProfileResponse,
   SentinelContextProfileResponse,
   FusionProfileResponse,
+  ClassificationPredictionResponse,
   OSMFeatureCollection,
 } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite, Layers } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite, Layers, BrainCircuit } from 'lucide-react';
 
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
@@ -25,6 +26,7 @@ type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent' |
 type LandCoverFilter = 'all' | 'cropland' | 'tree_cover' | 'built_up' | 'grassland' | 'mixed';
 type SentinelFilter = 'all' | 'evaluated' | 'clear' | 'cloud_limited' | 'recent';
 type FusionFilter = 'all' | 'complete' | 'partial' | 'evaluated';
+type ClassificationFilter = 'all' | 'industrial' | 'agricultural' | 'natural' | 'built_non_industrial' | 'mixed' | 'insufficient';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -54,6 +56,11 @@ export function Dashboard() {
   const [fusionMap, setFusionMap] = useState<Record<string, FusionProfileResponse>>({});
   const [isSyncingFusion, setIsSyncingFusion] = useState<boolean>(false);
   const [fusionFilter, setFusionFilter] = useState<FusionFilter>('all');
+
+  // Phase 8 Intelligent Classification State
+  const [classificationMap, setClassificationMap] = useState<Record<string, ClassificationPredictionResponse>>({});
+  const [isSyncingClassification, setIsSyncingClassification] = useState<boolean>(false);
+  const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
 
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -175,6 +182,15 @@ export function Dashboard() {
                       }
                     })
                     .catch((err) => console.warn("[Phase 7 Batch Fusion] Warning:", err)),
+
+                  // Phase 8: Batch Classification Predictions (500 chunking)
+                  apiService.getBatchClassifications(ids)
+                    .then((classRes) => {
+                      if (isMounted && classRes?.predictions) {
+                        setClassificationMap(classRes.predictions);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 8 Batch Classification] Warning:", err)),
                 ]);
               }
             }
@@ -366,6 +382,18 @@ export function Dashboard() {
         console.warn("Failed to fetch fusion profile on click:", err);
       }
     }
+
+    // Fetch Phase 8 Classification prediction on demand if absent
+    if (hotspot.id && !classificationMap[hotspot.id]) {
+      try {
+        const classProf = await apiService.getObservationClassification(hotspot.id);
+        if (classProf) {
+          setClassificationMap(prev => ({ ...prev, [hotspot.id]: classProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch classification prediction on click:", err);
+      }
+    }
   };
 
   const handleSyncSentinel = async (targetId?: string) => {
@@ -412,6 +440,30 @@ export function Dashboard() {
       console.error("Feature Fusion sync failed:", err);
     } finally {
       setIsSyncingFusion(false);
+    }
+  };
+
+  const handleSyncClassification = async () => {
+    if (isSyncingClassification || hotspots.length === 0) return;
+    setIsSyncingClassification(true);
+    try {
+      const ids = hotspots.map((h) => h.id).slice(0, 1500);
+      await apiService.syncClassifications({
+        observation_ids: ids,
+        force_recompute: true,
+      });
+
+      // Refresh batch predictions via 500-chunked batch
+      if (ids.length > 0) {
+        const res = await apiService.getBatchClassifications(ids);
+        if (res && res.predictions) {
+          setClassificationMap(res.predictions);
+        }
+      }
+    } catch (err) {
+      console.error("Classification sync failed:", err);
+    } finally {
+      setIsSyncingClassification(false);
     }
   };
 
@@ -480,6 +532,21 @@ export function Dashboard() {
         return Boolean(fusionMap[h.id]);
       }
 
+      // Phase 8 Intelligent Classification Filter
+      if (classificationFilter === 'insufficient') {
+        return classificationMap[h.id]?.classification_status === 'INSUFFICIENT_EVIDENCE';
+      } else if (classificationFilter === 'industrial') {
+        return classificationMap[h.id]?.predicted_class === 'INDUSTRIAL_THERMAL_CONTEXT';
+      } else if (classificationFilter === 'agricultural') {
+        return classificationMap[h.id]?.predicted_class === 'AGRICULTURAL_THERMAL_CONTEXT';
+      } else if (classificationFilter === 'natural') {
+        return classificationMap[h.id]?.predicted_class === 'NATURAL_VEGETATION_THERMAL_CONTEXT';
+      } else if (classificationFilter === 'built_non_industrial') {
+        return classificationMap[h.id]?.predicted_class === 'BUILT_NON_INDUSTRIAL_CONTEXT';
+      } else if (classificationFilter === 'mixed') {
+        return classificationMap[h.id]?.predicted_class === 'MIXED_THERMAL_CONTEXT';
+      }
+
       return true;
     } else {
       if (fixtureFilter === 'industrial') return false;
@@ -511,6 +578,13 @@ export function Dashboard() {
   const fusionCompleteCount = hotspots.filter(h => fusionMap[h.id]?.fusion_status === 'COMPLETE').length;
   const fusionPartialCount = hotspots.filter(h => fusionMap[h.id]?.fusion_status === 'PARTIAL').length;
   const fusionEvaluatedCount = hotspots.filter(h => Boolean(fusionMap[h.id])).length;
+  const classificationCount = Object.keys(classificationMap).length;
+  const classificationIndustrialCount = Object.values(classificationMap).filter(p => p.predicted_class === 'INDUSTRIAL_THERMAL_CONTEXT').length;
+  const classificationAgCount = Object.values(classificationMap).filter(p => p.predicted_class === 'AGRICULTURAL_THERMAL_CONTEXT').length;
+  const classificationNatCount = Object.values(classificationMap).filter(p => p.predicted_class === 'NATURAL_VEGETATION_THERMAL_CONTEXT').length;
+  const classificationBuiltCount = Object.values(classificationMap).filter(p => p.predicted_class === 'BUILT_NON_INDUSTRIAL_CONTEXT').length;
+  const classificationMixedCount = Object.values(classificationMap).filter(p => p.predicted_class === 'MIXED_THERMAL_CONTEXT').length;
+  const classificationInsufficientCount = Object.values(classificationMap).filter(p => p.classification_status === 'INSUFFICIENT_EVIDENCE').length;
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
@@ -611,6 +685,17 @@ export function Dashboard() {
             <span>{isSyncingFusion ? 'Syncing Fusion...' : 'Sync Fusion'}</span>
           </button>
 
+          {/* Sync Classification Button */}
+          <button
+            onClick={handleSyncClassification}
+            disabled={isSyncingClassification || loading}
+            className="flex items-center gap-1.5 text-xs bg-rose-950/80 hover:bg-rose-900 border border-rose-700 text-rose-300 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Classify & persist Phase 8 thermal context archetypes via ML inference"
+          >
+            <BrainCircuit size={14} className={isSyncingClassification ? 'animate-spin text-rose-300' : 'text-rose-400'} />
+            <span>{isSyncingClassification ? 'Classifying...' : 'Sync Classify'}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
@@ -641,6 +726,8 @@ export function Dashboard() {
               sentinelClear={sentinelClearCount}
               fusionComplete={fusionCompleteCount}
               fusionPartial={fusionPartialCount}
+              classificationCount={classificationCount}
+              classificationIndustrial={classificationIndustrialCount}
               highRisk={0}
             />
           </div>
@@ -845,6 +932,43 @@ export function Dashboard() {
               </div>
             </div>
 
+            {/* Phase 8 Intelligent Classification Filter */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1">
+                  <BrainCircuit size={12} className="text-rose-600" /> Classification (Phase 8)
+                </span>
+                <span className="text-[9px] font-semibold text-rose-600">
+                  {classificationCount} Classified
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                {[
+                  { id: 'all', label: 'All Classes' },
+                  { id: 'industrial', label: `Industrial (${classificationIndustrialCount})` },
+                  { id: 'agricultural', label: `Ag (${classificationAgCount})` },
+                  { id: 'natural', label: `Natural (${classificationNatCount})` },
+                  { id: 'built_non_industrial', label: `Built (${classificationBuiltCount})` },
+                  { id: 'mixed', label: `Mixed (${classificationMixedCount})` },
+                  { id: 'insufficient', label: `Insufficient (${classificationInsufficientCount})` },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setClassificationFilter(opt.id as ClassificationFilter)}
+                    className={`py-1 px-1.5 rounded text-left font-medium transition-all ${
+                      opt.id === 'insufficient' ? 'col-span-2' : ''
+                    } ${
+                      classificationFilter === opt.id
+                        ? 'bg-rose-700 text-white font-bold shadow-xs'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Day Range Selector */}
             <div className="pt-2.5 border-t border-gray-100">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -889,6 +1013,7 @@ export function Dashboard() {
           landCoverProfile={selectedHotspot ? landCoverMap[selectedHotspot.id] : null}
           sentinelProfile={selectedHotspot ? sentinelContextMap[selectedHotspot.id] : null}
           fusionProfile={selectedHotspot ? fusionMap[selectedHotspot.id] : null}
+          classificationProfile={selectedHotspot ? classificationMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
           onSyncSentinel={handleSyncSentinel}

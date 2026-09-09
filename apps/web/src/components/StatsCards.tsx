@@ -1,4 +1,4 @@
-import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite, Layers } from 'lucide-react';
+import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite, Layers, BrainCircuit } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
@@ -9,6 +9,8 @@ interface StatsCardsProps {
   sentinelClear?: number;
   fusionComplete?: number;
   fusionPartial?: number;
+  classificationCount?: number;
+  classificationIndustrial?: number;
   highRisk?: number;
   isLive?: boolean;
   noaa20?: number;
@@ -24,6 +26,8 @@ export function StatsCards({
   sentinelClear = 0,
   fusionComplete = 0,
   fusionPartial = 0,
+  classificationCount = 0,
+  classificationIndustrial = 0,
   highRisk = 0,
   isLive = true,
   noaa20 = 0,
@@ -31,7 +35,7 @@ export function StatsCards({
 }: StatsCardsProps) {
   if (isLive) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 p-4 z-10 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 p-4 z-10 w-full">
         <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
           <div className="p-2.5 bg-red-100 text-red-600 rounded-full shrink-0">
             <Flame size={22} />
@@ -94,12 +98,29 @@ export function StatsCards({
             <Layers size={22} />
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] text-violet-800 font-semibold uppercase tracking-wider truncate">Phase 7 • Feature Fusion</p>
+            <p className="text-[11px] text-violet-800 font-semibold uppercase tracking-wider truncate">Phase 7 • Fusion</p>
             <div className="flex items-baseline gap-1.5">
               <p className="text-xl font-black text-violet-950">{fusionComplete}</p>
               {fusionPartial > 0 && (
                 <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                  {fusionPartial} PARTIAL
+                  {fusionPartial} PART
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
+          <div className="p-2.5 bg-rose-100 text-rose-700 rounded-full shrink-0">
+            <BrainCircuit size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-rose-800 font-semibold uppercase tracking-wider truncate">Phase 8 • Classified</p>
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-xl font-black text-rose-950">{classificationCount}</p>
+              {classificationIndustrial > 0 && (
+                <span className="text-[10px] font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                  {classificationIndustrial} IND
                 </span>
               )}
             </div>

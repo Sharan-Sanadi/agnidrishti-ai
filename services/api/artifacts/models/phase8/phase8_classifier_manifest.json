@@ -1,0 +1,160 @@
+{
+  "model_version": "agnidrishti_context_classifier_v1",
+  "model_family": "hist_gradient_boosting",
+  "model_artifact_filename": "agnidrishti_context_classifier_v1.joblib",
+  "model_artifact_hash": "28040c6bc54a86fae48d6606bbfb3fa32657ea04cd402c93e9bd438d2add49ba",
+  "model_artifact_size_bytes": 162333,
+  "fusion_schema_version": "fusion_v1",
+  "fusion_schema_hash": "b4f4d0f23b07a2816c0d69a133ab5495dd51aed5fe4c7ef7c865c864efb5064d",
+  "training_dataset_fingerprint": "98783d8f325f9361c892670a1675044500439a73e7215a6f98860ac227fe6957",
+  "classes": [
+    "INDUSTRIAL_THERMAL_CONTEXT",
+    "AGRICULTURAL_THERMAL_CONTEXT",
+    "NATURAL_VEGETATION_THERMAL_CONTEXT",
+    "BUILT_NON_INDUSTRIAL_CONTEXT",
+    "MIXED_THERMAL_CONTEXT"
+  ],
+  "ordered_features": [
+    "thermal_frp",
+    "thermal_brightness_ti4",
+    "thermal_brightness_ti5",
+    "thermal_scan",
+    "thermal_track",
+    "thermal_daynight",
+    "thermal_satellite",
+    "thermal_instrument",
+    "thermal_confidence",
+    "temporal_persistence_index",
+    "temporal_persistence_class",
+    "temporal_active_days_7d",
+    "temporal_active_days_30d",
+    "temporal_active_weeks_30d",
+    "temporal_span_days_30d",
+    "temporal_coverage_ratio_30d",
+    "temporal_detection_count_30d",
+    "industrial_coverage_status",
+    "industrial_nearest_distance_m",
+    "industrial_inside_area",
+    "industrial_nearest_category",
+    "industrial_feature_count_500m",
+    "industrial_feature_count_1km",
+    "industrial_feature_count_5km",
+    "industrial_has_flare_nearby",
+    "industrial_has_chimney_nearby",
+    "industrial_has_refinery_nearby",
+    "industrial_has_power_plant_nearby",
+    "landcover_point_code",
+    "landcover_coverage_status",
+    "landcover_dominant_fraction_500m",
+    "landcover_tree_fraction_500m",
+    "landcover_shrub_fraction_500m",
+    "landcover_grass_fraction_500m",
+    "landcover_cropland_fraction_500m",
+    "landcover_builtup_fraction_500m",
+    "landcover_bare_fraction_500m",
+    "landcover_water_fraction_500m",
+    "landcover_wetland_fraction_500m",
+    "sentinel_quality_status",
+    "sentinel_provider_status",
+    "sentinel_scene_age_days",
+    "sentinel_valid_fraction_250m",
+    "sentinel_cloud_fraction_250m",
+    "sentinel_b04_median_250m",
+    "sentinel_b08_median_250m",
+    "sentinel_b11_median_250m",
+    "sentinel_b12_median_250m",
+    "sentinel_ndvi_median_250m",
+    "sentinel_ndmi_median_250m",
+    "sentinel_nbr_median_250m",
+    "sentinel_b11_p90_250m",
+    "sentinel_b12_p90_250m"
+  ],
+  "validation_status": "WEAK_SUPERVISION_PROTOTYPE",
+  "metrics": {
+    "macro_f1": 0.9807,
+    "weighted_f1": 0.9849,
+    "balanced_accuracy": 0.9944,
+    "per_class": {
+      "INDUSTRIAL_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 4
+      },
+      "AGRICULTURAL_THERMAL_CONTEXT": {
+        "precision": 0.9091,
+        "recall": 1.0,
+        "f1_score": 0.9524,
+        "support": 10
+      },
+      "NATURAL_VEGETATION_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "support": 32
+      },
+      "BUILT_NON_INDUSTRIAL_CONTEXT": {
+        "precision": 0.9333,
+        "recall": 1.0,
+        "f1_score": 0.9655,
+        "support": 14
+      },
+      "MIXED_THERMAL_CONTEXT": {
+        "precision": 1.0,
+        "recall": 0.9718,
+        "f1_score": 0.9857,
+        "support": 71
+      }
+    },
+    "confusion_matrix": {
+      "INDUSTRIAL_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 4,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "AGRICULTURAL_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 10,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "NATURAL_VEGETATION_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 32,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 0,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "BUILT_NON_INDUSTRIAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 0,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 14,
+        "MIXED_THERMAL_CONTEXT": 0
+      },
+      "MIXED_THERMAL_CONTEXT": {
+        "INDUSTRIAL_THERMAL_CONTEXT": 0,
+        "AGRICULTURAL_THERMAL_CONTEXT": 1,
+        "NATURAL_VEGETATION_THERMAL_CONTEXT": 0,
+        "BUILT_NON_INDUSTRIAL_CONTEXT": 1,
+        "MIXED_THERMAL_CONTEXT": 69
+      }
+    },
+    "class_names": [
+      "INDUSTRIAL_THERMAL_CONTEXT",
+      "AGRICULTURAL_THERMAL_CONTEXT",
+      "NATURAL_VEGETATION_THERMAL_CONTEXT",
+      "BUILT_NON_INDUSTRIAL_CONTEXT",
+      "MIXED_THERMAL_CONTEXT"
+    ],
+    "total_eval_samples": 131,
+    "evaluation_type": "WEAK-LABEL AGREEMENT"
+  },
+  "trained_at": "2026-09-09T16:26:42.380174+00:00",
+  "random_seed": 42,
+  "python_version": "3.11.9",
+  "sklearn_version": "1.9.0"
+}
