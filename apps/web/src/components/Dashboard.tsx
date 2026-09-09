@@ -10,17 +10,19 @@ import {
   PersistenceProfileResponse,
   IndustrialContextProfileResponse,
   LandCoverProfileResponse,
+  SentinelContextProfileResponse,
   OSMFeatureCollection,
 } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite } from 'lucide-react';
 
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
 type DataMode = 'live' | 'fixture';
 type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent' | 'mapped_industry';
 type LandCoverFilter = 'all' | 'cropland' | 'tree_cover' | 'built_up' | 'grassland' | 'mixed';
+type SentinelFilter = 'all' | 'evaluated' | 'clear' | 'cloud_limited' | 'recent';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -40,6 +42,11 @@ export function Dashboard() {
   const [landCoverMap, setLandCoverMap] = useState<Record<string, LandCoverProfileResponse>>({});
   const [isSyncingLandCover, setIsSyncingLandCover] = useState<boolean>(false);
   const [landCoverFilter, setLandCoverFilter] = useState<LandCoverFilter>('all');
+
+  // Phase 6 Sentinel-2 Satellite Context State
+  const [sentinelContextMap, setSentinelContextMap] = useState<Record<string, SentinelContextProfileResponse>>({});
+  const [isSyncingSentinel, setIsSyncingSentinel] = useState<boolean>(false);
+  const [sentinelFilter, setSentinelFilter] = useState<SentinelFilter>('all');
 
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -143,6 +150,15 @@ export function Dashboard() {
                       }
                     })
                     .catch((err) => console.warn("[Phase 5 Batch Land Cover] Warning:", err)),
+
+                  // Phase 6: Batch Sentinel-2 Context Profiles (500 chunking)
+                  apiService.getBatchSentinelContext(ids)
+                    .then((sentRes) => {
+                      if (isMounted && sentRes?.profiles) {
+                        setSentinelContextMap(sentRes.profiles);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 6 Batch Sentinel Context] Warning:", err)),
                 ]);
               }
             }
@@ -310,6 +326,41 @@ export function Dashboard() {
         console.warn("Failed to fetch land cover profile on click:", err);
       }
     }
+
+    // Fetch Sentinel-2 profile on demand if absent
+    if (hotspot.id && !sentinelContextMap[hotspot.id]) {
+      try {
+        const sentProf = await apiService.getObservationSentinelContext(hotspot.id);
+        if (sentProf) {
+          setSentinelContextMap(prev => ({ ...prev, [hotspot.id]: sentProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch Sentinel profile on click:", err);
+      }
+    }
+  };
+
+  const handleSyncSentinel = async (targetId?: string) => {
+    if (isSyncingSentinel) return;
+    setIsSyncingSentinel(true);
+    try {
+      const idsToSync = targetId
+        ? [targetId]
+        : filteredHotspots.slice(0, 25).map((h) => h.id);
+      if (idsToSync.length === 0) return;
+
+      const res = await apiService.syncSentinelContext({
+        observation_ids: idsToSync,
+        force_refresh: false,
+      });
+      if (res.profiles) {
+        setSentinelContextMap(prev => ({ ...prev, ...res.profiles }));
+      }
+    } catch (err) {
+      console.error("Sentinel sync failed:", err);
+    } finally {
+      setIsSyncingSentinel(false);
+    }
   };
 
   const handleCloseDrawer = () => {
@@ -344,6 +395,30 @@ export function Dashboard() {
       } else if (landCoverFilter === 'mixed') {
         return landCoverMap[h.id]?.context_class === 'MIXED';
       }
+
+      // Phase 6 Sentinel-2 Context Filter
+      if (sentinelFilter === 'evaluated') {
+        const prof = sentinelContextMap[h.id];
+        if (!prof || prof.provider_status === 'NOT_EVALUATED' || prof.provider_status === 'ERROR' || prof.provider_status === 'PROVIDER_UNAVAILABLE') {
+          return false;
+        }
+      } else if (sentinelFilter === 'clear') {
+        const prof = sentinelContextMap[h.id];
+        if (!prof || (prof.quality_status !== 'EXCELLENT' && prof.quality_status !== 'GOOD')) {
+          return false;
+        }
+      } else if (sentinelFilter === 'cloud_limited') {
+        const prof = sentinelContextMap[h.id];
+        if (!prof || prof.quality_status !== 'CLOUD_LIMITED') {
+          return false;
+        }
+      } else if (sentinelFilter === 'recent') {
+        const prof = sentinelContextMap[h.id];
+        if (!prof || (prof.temporal_quality !== 'FRESH' && prof.temporal_quality !== 'RECENT')) {
+          return false;
+        }
+      }
+
       return true;
     } else {
       if (fixtureFilter === 'industrial') return false;
@@ -363,6 +438,14 @@ export function Dashboard() {
   const landCoverEvaluatedCount = hotspots.filter(h => {
     const prof = landCoverMap[h.id];
     return prof && prof.coverage_status !== 'UNAVAILABLE';
+  }).length;
+  const sentinelEvaluatedCount = hotspots.filter(h => {
+    const prof = sentinelContextMap[h.id];
+    return prof && (prof.provider_status === 'AVAILABLE' || prof.provider_status === 'CLOUD_LIMITED');
+  }).length;
+  const sentinelClearCount = hotspots.filter(h => {
+    const prof = sentinelContextMap[h.id];
+    return prof && (prof.quality_status === 'EXCELLENT' || prof.quality_status === 'GOOD');
   }).length;
 
   return (
@@ -442,6 +525,17 @@ export function Dashboard() {
             <span>{isSyncingLandCover ? 'Syncing Land Cover...' : 'Sync Land Cover'}</span>
           </button>
 
+          {/* Sync Sentinel-2 Button */}
+          <button
+            onClick={() => handleSyncSentinel()}
+            disabled={isSyncingSentinel || loading}
+            className="flex items-center gap-1.5 text-xs bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-700 text-indigo-300 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Precompute / sync Sentinel-2 L2A optical/SWIR context profiles for top 25 observations"
+          >
+            <Satellite size={14} className={isSyncingSentinel ? 'animate-spin text-indigo-300' : 'text-indigo-400'} />
+            <span>{isSyncingSentinel ? 'Syncing Sentinel...' : 'Sync Sentinel'}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
@@ -468,6 +562,8 @@ export function Dashboard() {
               industrial={mappedIndustryCount}
               persistent={persistentCount}
               landCoverEvaluated={landCoverEvaluatedCount}
+              sentinelEvaluated={sentinelEvaluatedCount}
+              sentinelClear={sentinelClearCount}
               highRisk={0}
             />
           </div>
@@ -607,6 +703,39 @@ export function Dashboard() {
               </div>
             </div>
 
+            {/* Phase 6 Sentinel-2 Filter */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1">
+                  <Satellite size={12} className="text-indigo-600" /> Sentinel-2 (Phase 6)
+                </span>
+                <span className="text-[9px] font-semibold text-indigo-600">
+                  {sentinelEvaluatedCount} Evaluated
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'evaluated', label: 'Evaluated' },
+                  { id: 'clear', label: 'Clear / Good' },
+                  { id: 'cloud_limited', label: 'Cloud Limited' },
+                  { id: 'recent', label: 'Recent Context' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setSentinelFilter(opt.id as SentinelFilter)}
+                    className={`py-1 px-1.5 rounded text-left font-medium transition-all ${
+                      sentinelFilter === opt.id
+                        ? 'bg-indigo-700 text-white font-bold shadow-xs'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Day Range Selector */}
             <div className="pt-2.5 border-t border-gray-100">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -649,8 +778,10 @@ export function Dashboard() {
           persistenceProfile={selectedHotspot ? persistenceMap[selectedHotspot.id] : null}
           industrialContextProfile={selectedHotspot ? industrialContextMap[selectedHotspot.id] : null}
           landCoverProfile={selectedHotspot ? landCoverMap[selectedHotspot.id] : null}
+          sentinelProfile={selectedHotspot ? sentinelContextMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
+          onSyncSentinel={handleSyncSentinel}
         />
       </div>
     </div>

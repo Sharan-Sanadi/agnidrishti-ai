@@ -64,3 +64,6 @@ packages/contracts/generated/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ─── Agent / Brain / Artifacts ───
+brain/

@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     meta,
     observations,
     persistence,
+    sentinel2,
 )
 
 api_router = APIRouter()
@@ -22,4 +23,5 @@ api_router.include_router(observations.router, prefix="/observations", tags=["Po
 api_router.include_router(persistence.router, tags=["Temporal Persistence"])
 api_router.include_router(industrial_context.router, tags=["Industrial Context Intelligence"])
 api_router.include_router(land_cover.router, tags=["Land-Cover Intelligence"])
+api_router.include_router(sentinel2.router, tags=["Sentinel-2 Satellite Context"])
 api_router.include_router(analysis.router, prefix="/analyze", tags=["Analysis"])

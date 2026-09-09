@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees } from 'lucide-react';
 import {
   AnalysisResponse,
@@ -5,6 +6,8 @@ import {
   PersistenceProfileResponse,
   IndustrialContextProfileResponse,
   LandCoverProfileResponse,
+  SentinelContextProfileResponse,
+  apiService,
 } from '../services/api';
 
 interface AnalysisDrawerProps {
@@ -13,8 +16,10 @@ interface AnalysisDrawerProps {
   persistenceProfile?: PersistenceProfileResponse | null;
   industrialContextProfile?: IndustrialContextProfileResponse | null;
   landCoverProfile?: LandCoverProfileResponse | null;
+  sentinelProfile?: SentinelContextProfileResponse | null;
   loading: boolean;
   onClose: () => void;
+  onSyncSentinel?: (observationId: string) => Promise<void>;
 }
 
 export function AnalysisDrawer({
@@ -23,9 +28,13 @@ export function AnalysisDrawer({
   persistenceProfile,
   industrialContextProfile,
   landCoverProfile,
+  sentinelProfile,
   loading,
   onClose,
+  onSyncSentinel,
 }: AnalysisDrawerProps) {
+  const [previewMode, setPreviewMode] = useState<'true_color' | 'swir_context'>('true_color');
+
   if (!hotspot) return null;
 
   const conf = (hotspot.confidence || '').toLowerCase();
@@ -33,7 +42,7 @@ export function AnalysisDrawer({
   const dayNightLabel = hotspot.daynight === 'D' ? 'Day (D)' : hotspot.daynight === 'N' ? 'Night (N)' : (hotspot.daynight || 'N/A');
 
   return (
-    <div className="absolute top-0 right-0 h-full w-96 bg-white shadow-2xl z-[1000] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200">
+    <div className="absolute top-0 right-0 h-full w-96 md:w-[420px] bg-white shadow-2xl z-[1000] flex flex-col transform transition-transform duration-300 ease-in-out border-l border-gray-200">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-slate-900 text-white">
         <div className="flex items-center gap-2">
@@ -465,6 +474,258 @@ export function AnalysisDrawer({
           ) : (
             <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600">
               Evaluating ESA WorldCover 10m 2021 v200 raster pixel context...
+            </div>
+          )}
+        </div>
+
+        {/* Phase 6: Sentinel-2 Optical/SWIR Satellite Context */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Satellite size={14} className="text-indigo-600" /> Sentinel-2 Context — Phase 6
+            </h3>
+            {sentinelProfile?.quality_status && (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider ${
+                  sentinelProfile.quality_status === 'EXCELLENT'
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                    : sentinelProfile.quality_status === 'GOOD'
+                    ? 'bg-blue-50 text-blue-800 border-blue-300'
+                    : sentinelProfile.quality_status === 'LIMITED'
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : sentinelProfile.quality_status === 'CLOUD_LIMITED'
+                    ? 'bg-orange-50 text-orange-800 border-orange-300'
+                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                }`}
+              >
+                {sentinelProfile.quality_status.replace(/_/g, ' ')}
+              </span>
+            )}
+          </div>
+
+          {sentinelProfile && (sentinelProfile.provider_status === 'AVAILABLE' || sentinelProfile.provider_status === 'CLOUD_LIMITED') ? (
+            <div className="bg-indigo-50/50 rounded-lg p-3.5 border border-indigo-200 text-xs space-y-3.5">
+              {/* Scene Age & Temporal Banner */}
+              <div className="flex items-center justify-between bg-white p-2.5 rounded border border-indigo-100">
+                <div>
+                  <span className="text-slate-400 block text-[9px] uppercase font-semibold">Scene Acquisition</span>
+                  <span className="font-bold text-slate-900 block text-xs">
+                    {sentinelProfile.scene_age_hours != null
+                      ? sentinelProfile.scene_age_hours < 24
+                        ? `${sentinelProfile.scene_age_hours.toFixed(1)}h before FIRMS`
+                        : `${(sentinelProfile.scene_age_hours / 24).toFixed(1)}d before FIRMS`
+                      : 'Prior to FIRMS'}
+                  </span>
+                </div>
+                {sentinelProfile.temporal_quality && (
+                  <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded border border-indigo-300 uppercase">
+                    {sentinelProfile.temporal_quality.replace(/_/g, ' ')}
+                  </span>
+                )}
+              </div>
+
+              {/* Scene Metadata */}
+              <div className="space-y-1.5 text-[11px] bg-white p-2.5 rounded border border-indigo-100">
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-slate-500">Provider & Sensor</span>
+                  <span className="font-semibold text-slate-800">CDSE • Sentinel-2 L2A</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-slate-500">Scene Identifier</span>
+                  <span className="font-mono text-[10px] text-slate-700 truncate max-w-[190px]" title={sentinelProfile.scene_id || ''}>
+                    {sentinelProfile.scene_id || 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-slate-500">Scene Acquired (UTC)</span>
+                  <span className="font-medium text-slate-800">
+                    {sentinelProfile.scene_acquisition_time_utc ? new Date(sentinelProfile.scene_acquisition_time_utc).toUTCString().slice(5, 22) : 'N/A'}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-slate-100 pb-1">
+                  <span className="text-slate-500">Catalogue Cloud Cover</span>
+                  <span className="font-semibold text-slate-800">{sentinelProfile.catalogue_cloud_cover != null ? `${sentinelProfile.catalogue_cloud_cover.toFixed(1)}%` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Local ROI Valid Clear Pixels</span>
+                  <span className="font-bold text-indigo-900">{sentinelProfile.local_valid_fraction != null ? `${(sentinelProfile.local_valid_fraction * 100).toFixed(1)}%` : 'N/A'}</span>
+                </div>
+              </div>
+
+              {/* Primary Spectral Indices (250m Neighborhood Medians) */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                    Primary Spectral Indices (250m Medians)
+                  </span>
+                  <span className="text-[9px] text-slate-400">Res: 20m</span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white p-2 rounded border border-indigo-100 text-center">
+                    <span className="text-slate-400 block text-[9px] uppercase font-bold">NDVI</span>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      {sentinelProfile.stats_250m?.ndvi_median != null ? sentinelProfile.stats_250m.ndvi_median.toFixed(3) : 'N/A'}
+                    </span>
+                    <span className="text-[8.5px] text-slate-500 block truncate mt-0.5" title="Vegetation spectral density">
+                      Vegetation
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-2 rounded border border-indigo-100 text-center">
+                    <span className="text-slate-400 block text-[9px] uppercase font-bold">NDMI</span>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      {sentinelProfile.stats_250m?.ndmi_median != null ? sentinelProfile.stats_250m.ndmi_median.toFixed(3) : 'N/A'}
+                    </span>
+                    <span className="text-[8.5px] text-slate-500 block truncate mt-0.5" title="Moisture / water stress">
+                      Moisture
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-2 rounded border border-indigo-100 text-center">
+                    <span className="text-slate-400 block text-[9px] uppercase font-bold">NBR</span>
+                    <span className="font-mono font-black text-slate-900 text-sm">
+                      {sentinelProfile.stats_250m?.nbr_median != null ? sentinelProfile.stats_250m.nbr_median.toFixed(3) : 'N/A'}
+                    </span>
+                    <span className="text-[8.5px] text-slate-500 block truncate mt-0.5" title="NIR-SWIR spectral context">
+                      NIR-SWIR
+                    </span>
+                  </div>
+                </div>
+
+                {/* Point Pixel Sample */}
+                <div className="bg-white/80 p-2 rounded border border-indigo-100 text-[10px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Point Coordinate Pixel:</span>
+                    <span className="font-semibold text-slate-800">
+                      {sentinelProfile.point_is_valid
+                        ? `Valid (SCL: ${sentinelProfile.point_scl ?? 'N/A'})`
+                        : sentinelProfile.point_scl != null
+                        ? `Cloud-masked (SCL: ${sentinelProfile.point_scl})`
+                        : 'Invalid / No data'}
+                    </span>
+                  </div>
+                  {sentinelProfile.point_is_valid && (
+                    <div className="grid grid-cols-3 gap-1 pt-1 border-t border-slate-100 text-center font-mono">
+                      <span>NDVI: {sentinelProfile.point_ndvi != null ? sentinelProfile.point_ndvi.toFixed(3) : 'N/A'}</span>
+                      <span>NDMI: {sentinelProfile.point_ndmi != null ? sentinelProfile.point_ndmi.toFixed(3) : 'N/A'}</span>
+                      <span>NBR: {sentinelProfile.point_nbr != null ? sentinelProfile.point_nbr.toFixed(3) : 'N/A'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Technical Spectral Reflectance */}
+              <div className="bg-white p-2.5 rounded border border-indigo-100 text-[11px] space-y-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+                  Surface Reflectance (250m Medians)
+                </span>
+                <div className="grid grid-cols-4 gap-1.5 text-center font-mono text-[10px]">
+                  <div className="bg-slate-50 p-1 rounded">
+                    <span className="text-slate-400 block text-[8px]">B04 (Red)</span>
+                    <span className="font-bold text-slate-800">{sentinelProfile.stats_250m?.b04_median != null ? sentinelProfile.stats_250m.b04_median.toFixed(3) : 'N/A'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-1 rounded">
+                    <span className="text-slate-400 block text-[8px]">B08 (NIR)</span>
+                    <span className="font-bold text-slate-800">{sentinelProfile.stats_250m?.b08_median != null ? sentinelProfile.stats_250m.b08_median.toFixed(3) : 'N/A'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-1 rounded">
+                    <span className="text-slate-400 block text-[8px]">B11 (SWIR1)</span>
+                    <span className="font-bold text-slate-800">{sentinelProfile.stats_250m?.b11_median != null ? sentinelProfile.stats_250m.b11_median.toFixed(3) : 'N/A'}</span>
+                  </div>
+                  <div className="bg-slate-50 p-1 rounded">
+                    <span className="text-slate-400 block text-[8px]">B12 (SWIR2)</span>
+                    <span className="font-bold text-slate-800">{sentinelProfile.stats_250m?.b12_median != null ? sentinelProfile.stats_250m.b12_median.toFixed(3) : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Imagery Previews */}
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                    Satellite Context Preview
+                  </span>
+                  <div className="flex gap-1 bg-slate-100 p-0.5 rounded border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('true_color')}
+                      className={`px-2 py-0.5 text-[9px] font-bold rounded transition-colors ${
+                        previewMode === 'true_color'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      True Color
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewMode('swir_context')}
+                      className={`px-2 py-0.5 text-[9px] font-bold rounded transition-colors ${
+                        previewMode === 'swir_context'
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      SWIR Context
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative w-full aspect-square bg-slate-950 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={apiService.getSentinelPreviewUrl(hotspot.id, previewMode)}
+                    alt={`Sentinel-2 ${previewMode === 'true_color' ? 'True Color' : 'SWIR Context'}`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  {/* Visual crosshair at exact center for FIRMS thermal coordinate */}
+                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div className="relative">
+                      <div className="w-3.5 h-3.5 rounded-full border-2 border-orange-500 bg-orange-500/30 animate-pulse"></div>
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+                  {/* Mode caption overlay */}
+                  <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-slate-950/80 backdrop-blur-xs text-white px-2 py-1 rounded text-[9px] flex justify-between items-center border border-white/10">
+                    <span className="font-semibold text-indigo-300">
+                      {previewMode === 'true_color' ? 'RGB: B04 (Red) • B03 (Green) • B02 (Blue)' : 'SWIR: B12 (SWIR2) • B11 (SWIR1) • B08 (NIR)'}
+                    </span>
+                    <span className="text-[8px] text-slate-400">FIRMS Point at Center</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scientific Disclaimer (Section 72) */}
+              <div className="pt-2 border-t border-indigo-200 text-[10px] text-slate-500 space-y-1">
+                <p className="text-[9px] leading-tight text-indigo-950/80 bg-indigo-100/60 p-2 rounded border border-indigo-200/80 font-medium">
+                  Notice: Sentinel-2 provides high-resolution optical/SWIR context, not direct temperature measurements. NASA FIRMS remains the authoritative thermal anomaly sensor. Cloud cover and prior acquisition timing limit interpretation.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 rounded-lg p-3.5 border border-slate-200 text-xs text-slate-600 space-y-2">
+              <p>
+                {sentinelProfile?.provider_status === 'NO_SCENE'
+                  ? 'No prior Sentinel-2 Level-2A scene found in CDSE catalog within 30-day lookback window.'
+                  : sentinelProfile?.provider_status === 'PROVIDER_UNAVAILABLE'
+                  ? 'CDSE provider service currently unavailable or rate-limited.'
+                  : 'Sentinel-2 optical/SWIR context not evaluated yet for this observation.'}
+              </p>
+              {onSyncSentinel && (
+                <button
+                  type="button"
+                  onClick={() => onSyncSentinel(hotspot.id)}
+                  className="w-full mt-1.5 py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <Satellite size={13} />
+                  Evaluate Sentinel-2 Context
+                </button>
+              )}
             </div>
           )}
         </div>

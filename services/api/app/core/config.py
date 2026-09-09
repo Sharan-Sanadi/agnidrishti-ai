@@ -104,6 +104,20 @@ class Settings(BaseSettings):
     worldcover_cache_dir: str = "data/cache/worldcover"
     worldcover_algorithm_version: str = "land_cover_v1"
 
+    # ─── Phase 6 Sentinel-2 L2A (Copernicus Data Space Ecosystem) ───
+    cdse_client_id: str = ""
+    cdse_client_secret: str = ""
+    cdse_token_url: str = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+    cdse_sentinel_hub_base_url: str = "https://sh.dataspace.copernicus.eu"
+    cdse_stac_base_url: str = "https://catalogue.dataspace.copernicus.eu/stac"
+    sentinel_collection: str = "sentinel-2-l2a"
+    sentinel_lookback_days: int = 30
+    sentinel_max_candidates: int = 8
+    sentinel_sync_batch_limit: int = 50
+    sentinel_algorithm_version: str = "sentinel2_context_v1"
+    sentinel_analytical_resolution_m: float = 20.0
+    sentinel_timeout_seconds: float = 35.0
+
     # ─── Google Earth Engine ───
     gee_project_id: str = ""
     google_application_credentials: str = ""
@@ -121,6 +135,10 @@ class Settings(BaseSettings):
         return bool(self.effective_firms_map_key)
 
     @property
+    def is_cdse_configured(self) -> bool:
+        return bool(self.cdse_client_id.strip() and self.cdse_client_secret.strip())
+
+    @property
     def is_earth_engine_configured(self) -> bool:
         return bool(self.gee_project_id and self.google_application_credentials)
 
@@ -131,6 +149,7 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",")]
+
 
 
 def get_settings() -> Settings:

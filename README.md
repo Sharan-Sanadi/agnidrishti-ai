@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 5 Verified](https://img.shields.io/badge/Status-Phase%205%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 6 Verified](https://img.shields.io/badge/Status-Phase%206%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,13 +15,13 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), and real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection).
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection), and real Copernicus Sentinel-2 Level-2A BOA optical/NIR/SWIR spectral context retrieval with SCL cloud-masking, strictly prior scene discovery ($\le T_0$), and server-side True Color and SWIR Context preview generation.
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 5 Verified
+## ⚡ Executive Summary — Phase 6 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -31,7 +31,8 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 3 — Temporal Persistence** | PostGIS ST_DWithin(750m) spatiotemporal recurrence, 30-day historical FIRMS backfill, distinct active UTC days, coverage gating, zero-future-leakage Temporal Persistence V1 index & classification | 🟢 **Verified** |
 | **Phase 4 — Industrial Context** | Server-side OpenStreetMap Overpass client, 9-category industrial taxonomy, PostGIS spatial feature store (`osm_industrial_features`), metric distance (`ST_Distance` geography), polygon containment (`ST_Covers`), 5km full-envelope coverage validation (`osm_context_coverage`), non-destructive Alembic migration, 500-batch ID API with frontend 1500-ID chunking | 🟢 **Verified** |
 | **Phase 5 — Land-Cover Intelligence** | Real ESA WorldCover 10 m 2021 v200 raster integration via cloud-optimized GeoTIFFs, 11-class standard taxonomy, multi-scale circular sampling (250m, 500m, 1000m) with true AEQD projection masks (excluding rectangular window corners), 60% dominance threshold contextual classification (`CROPLAND_DOMINANT`, `TREE_COVER_DOMINANT`, `BUILT_UP_DOMINANT`, `MIXED`, etc.), PostGIS persistence (`thermal_land_cover_profiles`), and UI telemetry drawer visualization | 🟢 **Verified** |
-| **Phase 6 — Sentinel-2 MSI Optical Cross-Ref** | Sentinel-2 L2A BOA reflectance, multi-band index extraction (NDVI, NBR, NBR2, SWIR), baseline contrast | ⏳ **Next Phase** |
+| **Phase 6 — Sentinel-2 Satellite Context** | Real Copernicus Data Space Ecosystem (CDSE) Sentinel-2 Level-2A BOA reflectance, STAC v1 discovery, strict $\le T_0$ zero-future-leakage prior selection (30-day lookback), SCL 20m cloud masking & dataMask validation, circular AEQD metric analysis (100m, 250m, 500m), robust spectral features (NDVI, NDMI, NBR, B04/B08/B11/B12 medians/percentiles), PostGIS persistence (`thermal_sentinel_context_profiles`), True Color & SWIR Context PNG previews | 🟢 **Verified** |
+| **Phase 7 — Feature Fusion** | Multi-modal fusion of temporal recurrence, industrial proximity, land-cover dominance, and spectral context into unified explainable intelligence | ⏳ **Next Phase** |
 
 ---
 
@@ -476,6 +477,14 @@ NASA_FIRMS_DEFAULT_DAY_RANGE=1
 NASA_FIRMS_TIMEOUT_SECONDS=20.0
 NASA_FIRMS_CACHE_TTL_SECONDS=600
 
+# ─── Copernicus Data Space Ecosystem (CDSE) / Sentinel-2 ───
+# Obtain OAuth2 credentials at: https://dataspace.copernicus.eu/
+CDSE_CLIENT_ID=your_cdse_client_id_here
+CDSE_CLIENT_SECRET=your_cdse_client_secret_here
+CDSE_TOKEN_URL=https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token
+CDSE_SENTINEL_HUB_BASE_URL=https://sh.dataspace.copernicus.eu
+CDSE_STAC_BASE_URL=https://catalogue.dataspace.copernicus.eu/stac
+
 # ─── Frontend ───
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ```
@@ -528,6 +537,71 @@ pnpm dev:web
 
 ---
 
+## 🛰️ Phase 6: Sentinel-2 Satellite Context (Copernicus L2A)
+
+Agnidrishti incorporates real high-resolution optical, near-infrared (NIR), and short-wave infrared (SWIR) satellite context from the **Copernicus Data Space Ecosystem (CDSE)** Sentinel-2 Level-2A mission to contextualize NASA FIRMS thermal anomaly observations.
+
+```
+NASA FIRMS THERMAL DETECTION (Point T_0)
+               │
+               ▼
+STAC v1 PRIOR SCENE DISCOVERY (T <= T_0, <= 30 days prior)
+               │
+               ▼
+SCL 20m CLOUD MASKING & DATAMASK VALIDATION
+               │
+               ▼
+SINGLE-REQUEST MULTIBAND PROCESS API (B04, B08, B11, B12, SCL, dataMask)
+               │
+               ▼
+CIRCULAR AEQD METRIC RADII SAMPLING (100m, 250m, 500m)
+               │
+               ▼
+SPECTRAL INDICES (NDVI, NDMI, NBR) & ROBUST MEDIANS / PERCENTILES
+               │
+               ▼
+POSTGIS STORAGE (thermal_sentinel_context_profiles)
+               │
+               ▼
+ANALYSIS DRAWER TELEMETRY + TRUE COLOR & SWIR CONTEXT PREVIEWS
+```
+
+### 1. Scientific Truth — Sentinel-2 Is Not A Thermal Sensor
+> [!IMPORTANT]
+> **Scientific Integrity Contract**: Sentinel-2 MSI is an **optical/NIR/SWIR sensor**, NOT a thermal sensor. It does **not** measure surface temperature or fire temperature. NASA FIRMS VIIRS (375m) remains the authoritative thermal anomaly sensor. Sentinel-2 contributes high-resolution 20m surface reflectance, vegetation state (NDVI), moisture context (NDMI), and burn/SWIR context (NBR). Single-scene spectral indices do not determine fire cause or fire probability.
+
+### 2. Strict Zero-Future-Leakage Contract
+- **Temporal Anchor**: Every Sentinel-2 scene search is strictly anchored to `observation.acquisition_time_utc` ($T_0$).
+- **No Future Data**: Scenes acquired after $T_0$ (`scene_acquisition_time_utc > target_time_utc`) are **strictly forbidden** and rejected during candidate evaluation, even if acquired on the same calendar day.
+- **Lookback Window**: Prior 30 days (`SENTINEL_LOOKBACK_DAYS = 30`). Candidate evaluation is capped at 8 nearest prior acquisitions (`SENTINEL_MAX_CANDIDATES = 8`).
+
+### 3. SCL Cloud Masking & Quality Assessment
+- **Invalid Pixels Excluded**: SCL codes `0` (NO_DATA), `1` (SATURATED/DEFECTIVE), `3` (CLOUD_SHADOW), `7` (UNCLASSIFIED/LOW_PROB), `8` (CLOUD_MEDIUM_PROB), `9` (CLOUD_HIGH_PROB), `10` (THIN_CIRRUS), and `dataMask == 0` are excluded from all spectral calculations and denominators.
+- **Local Quality Tiers**:
+  - `EXCELLENT`: $\ge 80\%$ valid pixels in ROI
+  - `GOOD`: $\ge 60\%$ valid pixels in ROI
+  - `LIMITED`: $\ge 40\%$ valid pixels in ROI
+  - `CLOUD_LIMITED`: $< 40\%$ valid pixels in ROI (null indices, no fabricated zeros)
+
+### 4. Analytical Standard & Spectral Indices
+- **Resolution**: Common 20m analytical grid for B04, B08, B11, B12, and SCL.
+- **Reflectance Units**: Standard Bottom-Of-Atmosphere (BOA) surface reflectance (Float32).
+- **Indices with Denominator Guards**:
+  - $\text{NDVI} = \frac{\text{B08} - \text{B04}}{\text{B08} + \text{B04} + 10^{-6}}$ (Vegetation context)
+  - $\text{NDMI} = \frac{\text{B08} - \text{B11}}{\text{B08} + \text{B11} + 10^{-6}}$ (Moisture context)
+  - $\text{NBR} = \frac{\text{B08} - \text{B12}}{\text{B08} + \text{B12} + 10^{-6}}$ (NIR-SWIR context)
+
+### 5. Multi-Scale Circular AEQD Metric Neighborhoods
+True circular masks using local Azimuthal Equidistant projection around FIRMS coordinates at **100m**, **250m** (primary), and **500m** radii, ensuring rectangular raster corners are excluded.
+
+### 6. Quota Safety & Production Endpoints
+- `GET /api/v1/observations/{id}/sentinel-2`: Retrieve cached profile or 404.
+- `POST /api/v1/sentinel-2/batch`: Read cached profiles in chunks of $\le 500$ IDs.
+- `POST /api/v1/sentinel-2/sync`: Bounded remote precomputation ($\le 50$ IDs max).
+- `GET /api/v1/observations/{id}/sentinel-2/preview?mode=true_color|swir_context`: Server-side rendered PNG previews with exact center crosshair overlay.
+
+---
+
 ## 🧪 Testing & Validation Suite
 
 Agnidrishti incorporates rigorous automated testing covering unit normalization, API contracts, and real PostGIS integration.
@@ -536,7 +610,7 @@ Agnidrishti incorporates rigorous automated testing covering unit normalization,
 ```bash
 cd services/api
 
-# Run comprehensive test suite
+# Run comprehensive test suite (123 tests passing)
 uv run pytest -v
 
 # Run code linter
@@ -547,10 +621,10 @@ cd ../..
 
 ### Run Frontend Verification
 ```bash
-# Lint frontend code
+# Lint frontend code (0 errors)
 pnpm lint:web
 
-# Run optimized production build
+# Run optimized production build (TypeScript + Turbopack passing)
 pnpm build:web
 ```
 
@@ -565,8 +639,8 @@ pnpm build:web
 [Phase 3] Temporal Persistence Intelligence ─────► 🟢 VERIFIED
 [Phase 4] Industrial Context (OSM) ──────────────► 🟢 VERIFIED
 [Phase 5] Land-Cover Intelligence (WorldCover) ─► 🟢 VERIFIED
-[Phase 6] Sentinel-2 MSI Optical Cross-Ref ──────► ⏳ NEXT UP
-[Phase 7] Geospatial Feature Fusion ─────────────► ⬜ PLANNED
+[Phase 6] Sentinel-2 Satellite Context (CDSE) ──► 🟢 VERIFIED
+[Phase 7] Geospatial Feature Fusion ─────────────► ⏳ NEXT UP
 [Phase 8] ML Industrial Fire Classification ─────► ⬜ PLANNED
 [Phase 9] Explainability & Attribution ──────────► ⬜ PLANNED
 [Phase 10] AgniRisk Anomaly Event Scoring ───────► ⬜ PLANNED
@@ -579,8 +653,6 @@ pnpm build:web
 ---
 
 ## 👥 Contributors
-
-- **Sagar NM** (`sagar`)
 
 ---
 

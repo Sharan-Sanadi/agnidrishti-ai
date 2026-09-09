@@ -1,10 +1,12 @@
-import { Flame, AlertTriangle, Factory, ShieldAlert, Trees } from 'lucide-react';
+import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
   industrial?: number;
   persistent?: number;
   landCoverEvaluated?: number;
+  sentinelEvaluated?: number;
+  sentinelClear?: number;
   highRisk?: number;
   isLive?: boolean;
   noaa20?: number;
@@ -16,6 +18,8 @@ export function StatsCards({
   industrial = 0,
   persistent = 0,
   landCoverEvaluated = 0,
+  sentinelEvaluated = 0,
+  sentinelClear = 0,
   highRisk = 0,
   isLive = true,
   noaa20 = 0,
@@ -23,7 +27,7 @@ export function StatsCards({
 }: StatsCardsProps) {
   if (isLive) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 p-4 z-10 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 p-4 z-10 w-full">
         <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
           <div className="p-2.5 bg-red-100 text-red-600 rounded-full shrink-0">
             <Flame size={22} />
@@ -61,6 +65,23 @@ export function StatsCards({
           <div className="min-w-0">
             <p className="text-[11px] text-emerald-800 font-semibold uppercase tracking-wider truncate">Phase 5 • Land Cover</p>
             <p className="text-xl font-black text-emerald-950">{landCoverEvaluated}</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
+          <div className="p-2.5 bg-indigo-100 text-indigo-700 rounded-full shrink-0">
+            <Satellite size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-indigo-800 font-semibold uppercase tracking-wider truncate">Phase 6 • Sentinel-2</p>
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-xl font-black text-indigo-950">{sentinelEvaluated}</p>
+              {sentinelClear > 0 && (
+                <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                  {sentinelClear} CLR
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

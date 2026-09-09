@@ -318,6 +318,115 @@ export interface LandCoverSyncResponse {
   duration_seconds: number;
 }
 
+export type SentinelProviderStatus =
+  | 'AVAILABLE'
+  | 'CLOUD_LIMITED'
+  | 'NO_SCENE'
+  | 'NOT_EVALUATED'
+  | 'RATE_LIMITED'
+  | 'PROVIDER_UNAVAILABLE'
+  | 'ERROR';
+
+export type SentinelQualityStatus =
+  | 'EXCELLENT'
+  | 'GOOD'
+  | 'LIMITED'
+  | 'CLOUD_LIMITED'
+  | 'UNAVAILABLE';
+
+export type SentinelTemporalQuality =
+  | 'FRESH'
+  | 'RECENT'
+  | 'OLDER_CONTEXT';
+
+export interface RadiusSpectralStats {
+  radius_m: number;
+  total_pixel_count: number;
+  valid_pixel_count: number;
+  valid_fraction: number;
+  b04_median?: number | null;
+  b08_median?: number | null;
+  b11_median?: number | null;
+  b12_median?: number | null;
+  ndvi_median?: number | null;
+  ndmi_median?: number | null;
+  nbr_median?: number | null;
+  ndvi_p10?: number | null;
+  ndvi_p90?: number | null;
+  ndmi_p10?: number | null;
+  ndmi_p90?: number | null;
+  nbr_p10?: number | null;
+  nbr_p90?: number | null;
+  b11_p90?: number | null;
+  b12_p90?: number | null;
+}
+
+export interface PointSpectralSample {
+  is_valid: boolean;
+  scl_code?: number | null;
+  b04?: number | null;
+  b08?: number | null;
+  b11?: number | null;
+  b12?: number | null;
+  ndvi?: number | null;
+  ndmi?: number | null;
+  nbr?: number | null;
+}
+
+export interface SentinelContextProfileResponse {
+  observation_id: string;
+  provider: string;
+  collection: string;
+  scene_id?: string | null;
+  product_id?: string | null;
+  satellite_platform?: string | null;
+  scene_acquisition_time_utc?: string | null;
+  target_firms_time_utc?: string | null;
+  scene_age_hours?: number | null;
+  scene_age_days?: number | null;
+  temporal_quality?: SentinelTemporalQuality | null;
+  catalogue_cloud_cover?: number | null;
+  local_valid_fraction?: number | null;
+  local_cloud_fraction?: number | null;
+  local_cloud_shadow_fraction?: number | null;
+  local_snow_fraction?: number | null;
+  quality_status: SentinelQualityStatus;
+  provider_status: SentinelProviderStatus;
+  analytical_resolution_m: number;
+  point_is_valid?: boolean;
+  point_scl?: number | null;
+  point_b04?: number | null;
+  point_b08?: number | null;
+  point_b11?: number | null;
+  point_b12?: number | null;
+  point_ndvi?: number | null;
+  point_ndmi?: number | null;
+  point_nbr?: number | null;
+  stats_100m?: RadiusSpectralStats | null;
+  stats_250m?: RadiusSpectralStats | null;
+  stats_500m?: RadiusSpectralStats | null;
+  algorithm_version: string;
+  processed_at?: string | null;
+}
+
+export interface BatchSentinelResponse {
+  total_requested: number;
+  count: number;
+  profiles: Record<string, SentinelContextProfileResponse>;
+}
+
+export interface SentinelSyncResponse {
+  status: string;
+  total_requested: number;
+  cached_profiles_reused: number;
+  profiles_computed: number;
+  profiles_cloud_limited: number;
+  profiles_no_scene: number;
+  profiles_failed: number;
+  duration_seconds: number;
+  profiles: Record<string, SentinelContextProfileResponse>;
+}
+
 export const apiService = {
   async getFIRMSHotspots(params?: {
     west?: number;
@@ -529,5 +638,54 @@ export const apiService = {
   }): Promise<LandCoverSyncResponse> {
     const response = await apiClient.post<LandCoverSyncResponse>('/land-cover/sync', params || {});
     return response.data;
-  }
+  },
+
+  async getObservationSentinelContext(observationId: string): Promise<SentinelContextProfileResponse> {
+    const response = await apiClient.get<SentinelContextProfileResponse>(`/observations/${observationId}/sentinel-2`);
+    return response.data;
+  },
+
+  async getBatchSentinelContext(observationIds: string[]): Promise<BatchSentinelResponse> {
+    const CHUNK_SIZE = 500;
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchSentinelResponse>('/sentinel-2/batch', {
+        observation_ids: observationIds,
+      });
+      return response.data;
+    }
+
+    const mergedProfiles: Record<string, SentinelContextProfileResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<BatchSentinelResponse>('/sentinel-2/batch', {
+          observation_ids: chunk,
+        });
+        if (response.data?.profiles) {
+          Object.assign(mergedProfiles, response.data.profiles);
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 6 Batch Sentinel Context] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      total_requested: observationIds.length,
+      count: Object.keys(mergedProfiles).length,
+      profiles: mergedProfiles,
+    };
+  },
+
+  async syncSentinelContext(params: {
+    observation_ids: string[];
+    force_refresh?: boolean;
+  }): Promise<SentinelSyncResponse> {
+    const response = await apiClient.post<SentinelSyncResponse>('/sentinel-2/sync', params);
+    return response.data;
+  },
+
+  getSentinelPreviewUrl(observationId: string, mode: 'true_color' | 'swir_context'): string {
+    return `${API_BASE_URL}/observations/${observationId}/sentinel-2/preview?mode=${mode}`;
+  },
 };
