@@ -67,7 +67,10 @@ interface HotspotMarkerProps {
 export function HotspotMarker({ hotspot, profile, onClick }: HotspotMarkerProps) {
   const conf = hotspot.confidence.toLowerCase();
   const confLabel = conf === 'h' ? 'High' : conf === 'n' ? 'Nominal' : conf === 'l' ? 'Low' : hotspot.confidence;
-  const frpDisplay = hotspot.frp_mw != null ? `${hotspot.frp_mw} MW` : 'N/A';
+  const frpVal = hotspot.frp_mw ?? hotspot.frp;
+  const frpDisplay = frpVal != null ? `${frpVal} MW` : 'N/A';
+  const acquiredDateStr = hotspot.acquired_at || hotspot.acquisition_time_utc;
+  const acquiredDate = acquiredDateStr ? new Date(acquiredDateStr).toUTCString() : 'N/A';
 
   return (
     <Marker 
@@ -102,7 +105,7 @@ export function HotspotMarker({ hotspot, profile, onClick }: HotspotMarkerProps)
           <p><strong>Satellite:</strong> {hotspot.satellite || 'VIIRS'} ({hotspot.source})</p>
           <p><strong>FRP:</strong> {frpDisplay}</p>
           <p><strong>Confidence:</strong> {confLabel}</p>
-          <p><strong>Acquired (UTC):</strong> {new Date(hotspot.acquired_at).toUTCString()}</p>
+          <p><strong>Acquired (UTC):</strong> {acquiredDate}</p>
           {profile && (
             <div className="mt-2 pt-2 border-t border-slate-200 text-xs">
               <p className="text-purple-700 font-bold">
