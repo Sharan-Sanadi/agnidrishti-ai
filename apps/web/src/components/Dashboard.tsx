@@ -2,24 +2,38 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { api, Hotspot, AnalysisResponse, FIRMSHotspotsResponse, PersistenceProfileResponse } from '../services/api';
+import {
+  apiService,
+  ThermalObservation,
+  AnalysisResponse,
+  FIRMSHotspotsResponse,
+  PersistenceProfileResponse,
+  IndustrialContextProfileResponse,
+  OSMFeatureCollection,
+} from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, Satellite, AlertCircle, Database } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff } from 'lucide-react';
 
-// Dynamically import Map without SSR
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
 type DataMode = 'live' | 'fixture';
-type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent';
+type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent' | 'mapped_industry';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
   const [dataMode, setDataMode] = useState<DataMode>('live');
-  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
-  const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
+  const [hotspots, setHotspots] = useState<ThermalObservation[]>([]);
+  const [selectedHotspot, setSelectedHotspot] = useState<ThermalObservation | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [persistenceMap, setPersistenceMap] = useState<Record<string, PersistenceProfileResponse>>({});
+
+  // Phase 4 Industrial Context State
+  const [industrialContextMap, setIndustrialContextMap] = useState<Record<string, IndustrialContextProfileResponse>>({});
+  const [industrialFeatures, setIndustrialFeatures] = useState<OSMFeatureCollection | null>(null);
+  const [industrialLayerVisible, setIndustrialLayerVisible] = useState<boolean>(true);
+  const [isSyncingOSM, setIsSyncingOSM] = useState<boolean>(false);
+
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,12 +60,11 @@ export function Dashboard() {
     async function fetchData() {
       try {
         if (dataMode === 'live') {
-          // Phase 2 Controlled Flow:
-          // If manual refresh triggered, run sync first (NASA FIRMS -> PostGIS)
+          // Controlled Flow: Manual refresh syncs NASA FIRMS to PostGIS first
           if (refreshTrigger > 0) {
             setIsSyncing(true);
             try {
-              const syncResp = await api.syncFIRMS({
+              const syncResp = await apiService.syncFIRMS({
                 days: dayRange,
                 force_refresh: true,
               });
@@ -60,41 +73,22 @@ export function Dashboard() {
                 console.log(`[Phase 2 Sync] Completed run ${syncResp.run_id} with ${syncResp.upserted_count} upserts.`);
               }
             } catch (syncErr) {
-              console.warn("Sync to PostGIS failed or database unconfigured; will attempt direct load:", syncErr);
+              console.warn("Sync to PostGIS failed or database unconfigured; attempting direct load:", syncErr);
             } finally {
               if (isMounted) setIsSyncing(false);
             }
           }
 
-          // Read observations from PostGIS storage
+          // Canonical Data Path: Read observations from PostGIS storage
           let loadedFromPostGIS = false;
           try {
-            const storedResp = await api.getStoredObservations({ limit: 1500 });
+            const storedResp = await apiService.getStoredObservations({ limit: 1500 });
             if (!isMounted) return;
 
             if (storedResp && storedResp.observations && storedResp.observations.length > 0) {
-              const mapped: Hotspot[] = storedResp.observations.map((obs) => ({
-                id: obs.id,
-                latitude: obs.latitude,
-                longitude: obs.longitude,
-                acquired_at: obs.acquisition_time_utc,
-                source: obs.source,
-                satellite: obs.satellite,
-                instrument: obs.instrument,
-                frp_mw: obs.frp,
-                brightness_ti4: obs.bright_ti4,
-                brightness_ti5: obs.bright_ti5,
-                confidence: obs.confidence,
-                confidence_normalized: obs.confidence_normalized,
-                day_night: obs.daynight,
-                scan: obs.scan,
-                track: obs.track,
-                firms_version: obs.firms_version,
-                first_ingested_at: obs.first_ingested_at,
-                last_seen_at: obs.last_seen_at,
-                ingestion_count: obs.ingestion_count,
+              const mapped: ThermalObservation[] = storedResp.observations.map((obs) => ({
+                ...obs,
                 stored_in_postgis: true,
-                is_live_firms: true,
               }));
               setHotspots(mapped);
               setIsPostgisBacked(true);
@@ -102,11 +96,12 @@ export function Dashboard() {
               loadedFromPostGIS = true;
               setErrorMessage(null);
 
-              // Phase 3: Fetch Batch Persistence Profiles for all loaded observations
+              const ids = mapped.map((h) => h.id).slice(0, 1500);
+
+              // Phase 3: Fetch Batch Persistence Profiles (500 chunking)
               try {
-                const ids = mapped.map((h) => h.id).slice(0, 1500);
                 if (ids.length > 0) {
-                  const batchRes = await api.getBatchPersistence(ids);
+                  const batchRes = await apiService.getBatchPersistence(ids);
                   if (isMounted && batchRes && batchRes.profiles) {
                     setPersistenceMap(batchRes.profiles);
                   }
@@ -114,48 +109,51 @@ export function Dashboard() {
               } catch (batchErr) {
                 console.warn("[Phase 3 Batch Persistence] Warning:", batchErr);
               }
+
+              // Phase 4: Fetch Batch Industrial Context Profiles (500 chunking)
+              try {
+                if (ids.length > 0) {
+                  const indRes = await apiService.getBatchIndustrialContext(ids);
+                  if (isMounted && indRes && indRes.profiles) {
+                    setIndustrialContextMap(indRes.profiles);
+                  }
+                }
+              } catch (indErr) {
+                console.warn("[Phase 4 Batch Industrial Context] Warning:", indErr);
+              }
+
+              // Fetch Stored GeoJSON Industrial Features for map layer
+              try {
+                const featRes = await apiService.getOSMIndustrialFeatures({ limit: 1000 });
+                if (isMounted && featRes) {
+                  setIndustrialFeatures(featRes);
+                }
+              } catch (featErr) {
+                console.warn("[Phase 4 OSM Features] Warning:", featErr);
+              }
             }
           } catch (postgisErr) {
             console.warn("Could not retrieve from PostGIS storage:", postgisErr);
           }
 
-          // If PostGIS has no records or is unconfigured, fallback to Phase 1 live API
+          // Fallback if PostGIS has no records
           if (!loadedFromPostGIS) {
-            const response = await api.getFIRMSHotspots({
+            const response = await apiService.getFIRMSHotspots({
               days: dayRange,
-              force_refresh: refreshTrigger > 0,
             });
             if (!isMounted) return;
 
             setFirmsMeta(response);
-            const mapped: Hotspot[] = response.observations.map((obs) => ({
-              id: obs.id,
-              latitude: obs.latitude,
-              longitude: obs.longitude,
-              acquired_at: obs.acquisition_time_utc,
-              source: obs.source,
-              satellite: obs.satellite,
-              instrument: obs.instrument,
-              frp_mw: obs.frp,
-              brightness_ti4: obs.bright_ti4,
-              brightness_ti5: obs.bright_ti5,
-              confidence: obs.confidence,
-              day_night: obs.daynight,
-              scan: obs.scan,
-              track: obs.track,
-              firms_version: obs.firms_version,
-              ingestion_time_utc: obs.ingestion_time_utc,
+            const mapped: ThermalObservation[] = response.observations.map((obs) => ({
+              ...obs,
               stored_in_postgis: false,
-              is_live_firms: true,
             }));
             setHotspots(mapped);
             setIsPostgisBacked(false);
             setErrorMessage(null);
           }
         } else {
-          const data = await api.getHotspots();
-          if (!isMounted) return;
-          setHotspots(data.hotspots);
+          setHotspots([]);
           setFirmsMeta(null);
           setIsPostgisBacked(false);
           setErrorMessage(null);
@@ -196,14 +194,52 @@ export function Dashboard() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleHotspotClick = async (hotspot: Hotspot) => {
+  const handleOSMSync = async () => {
+    if (isSyncingOSM || hotspots.length === 0) return;
+    setIsSyncingOSM(true);
+    try {
+      // Derive bounding box from loaded hotspots
+      const lats = hotspots.map((h) => h.latitude);
+      const lons = hotspots.map((h) => h.longitude);
+      const minLat = Math.min(...lats) - 0.1;
+      const maxLat = Math.max(...lats) + 0.1;
+      const minLon = Math.min(...lons) - 0.1;
+      const maxLon = Math.max(...lons) + 0.1;
+
+      await apiService.syncOSMIndustrial({
+        south: Math.max(-90, minLat),
+        west: Math.max(-180, minLon),
+        north: Math.min(90, maxLat),
+        east: Math.min(180, maxLon),
+        force_refresh: true,
+      });
+
+      // Refresh industrial features & context profiles
+      const featRes = await apiService.getOSMIndustrialFeatures({ limit: 1000 });
+      setIndustrialFeatures(featRes);
+
+      const ids = hotspots.map((h) => h.id).slice(0, 1500);
+      if (ids.length > 0) {
+        const indRes = await apiService.getBatchIndustrialContext(ids);
+        if (indRes && indRes.profiles) {
+          setIndustrialContextMap(indRes.profiles);
+        }
+      }
+    } catch (err) {
+      console.error("OSM sync failed:", err);
+    } finally {
+      setIsSyncingOSM(false);
+    }
+  };
+
+  const handleHotspotClick = async (hotspot: ThermalObservation) => {
     setSelectedHotspot(hotspot);
     setAnalysis(null);
 
-    // If observation has no cached persistence profile, fetch it on-demand
+    // Fetch persistence profile on demand if absent
     if (hotspot.id && !persistenceMap[hotspot.id]) {
       try {
-        const prof = await api.getObservationPersistence(hotspot.id);
+        const prof = await apiService.getObservationPersistence(hotspot.id);
         if (prof) {
           setPersistenceMap(prev => ({ ...prev, [hotspot.id]: prof }));
         }
@@ -212,16 +248,15 @@ export function Dashboard() {
       }
     }
 
-    // Only run mock analysis for Phase 0 fixtures
-    if (!hotspot.is_live_firms) {
-      setLoadingAnalysis(true);
+    // Fetch industrial context profile on demand if absent
+    if (hotspot.id && !industrialContextMap[hotspot.id]) {
       try {
-        const result = await api.analyzeHotspot(hotspot.latitude, hotspot.longitude);
-        setAnalysis(result);
-      } catch (error) {
-        console.error("Failed to analyze hotspot:", error);
-      } finally {
-        setLoadingAnalysis(false);
+        const indProf = await apiService.getObservationIndustrialContext(hotspot.id);
+        if (indProf) {
+          setIndustrialContextMap(prev => ({ ...prev, [hotspot.id]: indProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch industrial context profile on click:", err);
       }
     }
   };
@@ -236,23 +271,29 @@ export function Dashboard() {
     if (dataMode === 'live') {
       if (liveFilter === 'noaa20') return (h.source || '').includes('NOAA20') || h.satellite === 'N20';
       if (liveFilter === 'noaa21') return (h.source || '').includes('NOAA21') || h.satellite === 'N21';
-      if (liveFilter === 'day') return h.day_night === 'D';
-      if (liveFilter === 'night') return h.day_night === 'N';
+      if (liveFilter === 'day') return h.daynight === 'D';
+      if (liveFilter === 'night') return h.daynight === 'N';
       if (liveFilter === 'persistent') return persistenceMap[h.id]?.persistence_class === 'PERSISTENT';
+      if (liveFilter === 'mapped_industry') {
+        const ctx = industrialContextMap[h.id]?.context_class;
+        return ctx === 'STRONG' || ctx === 'MODERATE' || ctx === 'WEAK';
+      }
       return true;
     } else {
-      if (fixtureFilter === 'industrial') return h.classification === 'industrial';
-      if (fixtureFilter === 'persistent') return h.persistent;
+      if (fixtureFilter === 'industrial') return false;
+      if (fixtureFilter === 'persistent') return false;
       return true;
     }
   });
 
-  // Calculate live counts with 100% scope consistency
+  // Calculate live counts
   const noaa20Count = hotspots.filter(h => (h.source || '').includes('NOAA20') || h.satellite === 'N20').length;
   const noaa21Count = hotspots.filter(h => (h.source || '').includes('NOAA21') || h.satellite === 'N21').length;
-  const persistentCount = dataMode === 'live'
-    ? hotspots.filter(h => persistenceMap[h.id]?.persistence_class === 'PERSISTENT').length
-    : hotspots.filter(h => h.persistent).length;
+  const persistentCount = hotspots.filter(h => persistenceMap[h.id]?.persistence_class === 'PERSISTENT').length;
+  const mappedIndustryCount = hotspots.filter(h => {
+    const ctx = industrialContextMap[h.id]?.context_class;
+    return ctx === 'STRONG' || ctx === 'MODERATE' || ctx === 'WEAK';
+  }).length;
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
@@ -270,68 +311,65 @@ export function Dashboard() {
               </span>
             </div>
             <p className="text-xs font-medium text-slate-400">
-              {dataMode === 'live' ? (
-                <span className="flex items-center gap-2 text-emerald-400">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                  </span>
-                  {isPostgisBacked ? (
-                    <span className="flex items-center gap-1 font-semibold">
-                      <Database size={13} className="text-emerald-400" />
-                      NASA FIRMS • PostGIS-backed {totalStored != null ? `(${totalStored} Stored)` : ''}
-                    </span>
-                  ) : (
-                    <span>NASA FIRMS — Live Satellite Ingestion Pipeline (VIIRS NOAA-20 & NOAA-21)</span>
-                  )}
-                  {lastSyncTime && (
-                    <span className="text-[11px] text-slate-400 font-normal">
-                      • Synced: {lastSyncTime}
-                    </span>
-                  )}
+              <span className="flex items-center gap-2 text-emerald-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-              ) : (
-                <span className="text-amber-400">Phase 0 Local Fixture Mode (Offline Development)</span>
-              )}
+                {isPostgisBacked ? (
+                  <span className="flex items-center gap-1 font-semibold">
+                    <Database size={13} className="text-emerald-400" />
+                    NASA FIRMS • PostGIS-backed {totalStored != null ? `(${totalStored} Stored)` : ''}
+                  </span>
+                ) : (
+                  <span>NASA FIRMS — Live Ingestion Pipeline (VIIRS NOAA-20 & NOAA-21)</span>
+                )}
+                {lastSyncTime && (
+                  <span className="text-[11px] text-slate-400 font-normal">
+                    • Synced: {lastSyncTime}
+                  </span>
+                )}
+              </span>
             </p>
           </div>
         </div>
 
         {/* Header Controls */}
         <div className="flex items-center gap-3">
-          {/* Mode Switcher */}
-          <div className="bg-slate-900 border border-slate-800 p-1 rounded-lg flex items-center gap-1 text-xs">
-            <button
-              onClick={() => setDataMode('live')}
-              className={`px-3 py-1 rounded font-semibold transition-all flex items-center gap-1.5 ${
-                dataMode === 'live'
-                  ? 'bg-orange-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Satellite size={14} /> LIVE (NASA FIRMS)
-            </button>
-            <button
-              onClick={() => setDataMode('fixture')}
-              className={`px-3 py-1 rounded font-semibold transition-all flex items-center gap-1.5 ${
-                dataMode === 'fixture'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Database size={14} /> Fixture Mode
-            </button>
-          </div>
+          {/* Industrial Layer Toggle */}
+          <button
+            onClick={() => setIndustrialLayerVisible(!industrialLayerVisible)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-bold transition-all border ${
+              industrialLayerVisible
+                ? 'bg-cyan-950/80 border-cyan-700 text-cyan-300 shadow-sm'
+                : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+            }`}
+            title="Toggle OpenStreetMap Industrial Layer visibility"
+          >
+            {industrialLayerVisible ? <Eye size={14} className="text-cyan-400" /> : <EyeOff size={14} />}
+            <span>Industrial Layer: {industrialLayerVisible ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Sync OSM Button */}
+          <button
+            onClick={handleOSMSync}
+            disabled={isSyncingOSM || loading}
+            className="flex items-center gap-1.5 text-xs bg-cyan-900/60 hover:bg-cyan-800 border border-cyan-700 text-cyan-200 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Sync server-side OpenStreetMap industrial features for current region"
+          >
+            <Factory size={14} className={isSyncingOSM ? 'animate-spin text-cyan-300' : 'text-cyan-400'} />
+            <span>{isSyncingOSM ? 'Syncing OSM...' : 'Sync OSM'}</span>
+          </button>
 
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
             disabled={loading || isSyncing}
-            className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
             title="Sync NASA FIRMS to PostGIS and refresh map"
           >
             <RefreshCw size={14} className={loading || isSyncing ? 'animate-spin text-orange-400' : ''} />
-            <span>{isSyncing ? 'Syncing to PostGIS...' : loading ? 'Loading...' : 'Refresh'}</span>
+            <span>{isSyncing ? 'Syncing...' : loading ? 'Loading...' : 'Refresh'}</span>
           </button>
         </div>
       </header>
@@ -343,12 +381,12 @@ export function Dashboard() {
           <div className="pointer-events-auto">
             <StatsCards
               total={filteredHotspots.length}
-              isLive={dataMode === 'live'}
+              isLive={true}
               noaa20={noaa20Count}
               noaa21={noaa21Count}
-              industrial={hotspots.filter(h => h.classification === 'industrial').length}
+              industrial={mappedIndustryCount}
               persistent={persistentCount}
-              highRisk={hotspots.filter(h => h.risk === 'high').length}
+              highRisk={0}
             />
           </div>
         </div>
@@ -370,148 +408,116 @@ export function Dashboard() {
         )}
 
         {/* Filters Panel */}
-        <div className="absolute left-4 top-36 z-10 bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-xl pointer-events-auto border border-gray-200/80 w-56 text-xs">
+        <div className="absolute left-4 top-36 z-10 bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-xl pointer-events-auto border border-gray-200/80 w-60 text-xs">
           <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-gray-100">
             <h3 className="font-bold text-gray-700 uppercase tracking-wider">
-              {dataMode === 'live' ? 'Satellite Filters' : 'Phase 0 Filters'}
+              Satellite & Context Filters
             </h3>
-            {dataMode === 'live' && (
-              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                Live
-              </span>
-            )}
+            <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
+              Live PostGIS
+            </span>
           </div>
 
-          {dataMode === 'live' ? (
-            <div className="space-y-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'all'}
-                    onChange={() => setLiveFilter('all')}
-                    className="accent-orange-600"
-                  />
-                  All Sensors ({hotspots.length})
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'noaa20'}
-                    onChange={() => setLiveFilter('noaa20')}
-                    className="accent-orange-600"
-                  />
-                  VIIRS NOAA-20 ({noaa20Count})
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'noaa21'}
-                    onChange={() => setLiveFilter('noaa21')}
-                    className="accent-orange-600"
-                  />
-                  VIIRS NOAA-21 ({noaa21Count})
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'day'}
-                    onChange={() => setLiveFilter('day')}
-                    className="accent-orange-600"
-                  />
-                  Daytime (D)
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'night'}
-                    onChange={() => setLiveFilter('night')}
-                    className="accent-orange-600"
-                  />
-                  Nighttime (N)
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-purple-800 hover:text-purple-950 font-bold">
-                  <input
-                    type="radio"
-                    name="live_filter"
-                    checked={liveFilter === 'persistent'}
-                    onChange={() => setLiveFilter('persistent')}
-                    className="accent-purple-600"
-                  />
-                  Persistent Phase 3 ({persistentCount})
-                </label>
-              </div>
-
-              {/* Day Range Selector */}
-              <div className="pt-2.5 border-t border-gray-100">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
-                  NASA Day Range
-                </span>
-                <div className="grid grid-cols-3 gap-1">
-                  {[1, 2, 3].map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setDayRange(d)}
-                      className={`py-1 rounded text-center font-bold transition-all ${
-                        dayRange === d
-                          ? 'bg-slate-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {d} {d === 1 ? 'Day' : 'Days'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Provenance Footer */}
-              {firmsMeta && (
-                <div className="pt-2 border-t border-gray-100 text-[10px] text-gray-500 space-y-0.5">
-                  <p><strong>Provider:</strong> NASA FIRMS</p>
-                  <p><strong>Status:</strong> {firmsMeta.data_status.toUpperCase()}</p>
-                  <p><strong>Fetched:</strong> {new Date(firmsMeta.fetched_at).toLocaleTimeString()}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 cursor-pointer">
+          <div className="space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
                 <input
                   type="radio"
-                  name="fixture_filter"
-                  checked={fixtureFilter === 'all'}
-                  onChange={() => setFixtureFilter('all')}
-                  className="accent-blue-600"
+                  name="live_filter"
+                  checked={liveFilter === 'all'}
+                  onChange={() => setLiveFilter('all')}
+                  className="accent-orange-600"
                 />
-                All Detections
+                All Sensors ({hotspots.length})
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
                 <input
                   type="radio"
-                  name="fixture_filter"
-                  checked={fixtureFilter === 'industrial'}
-                  onChange={() => setFixtureFilter('industrial')}
-                  className="accent-blue-600"
+                  name="live_filter"
+                  checked={liveFilter === 'noaa20'}
+                  onChange={() => setLiveFilter('noaa20')}
+                  className="accent-orange-600"
                 />
-                Industrial
+                VIIRS NOAA-20 ({noaa20Count})
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
                 <input
                   type="radio"
-                  name="fixture_filter"
-                  checked={fixtureFilter === 'persistent'}
-                  onChange={() => setFixtureFilter('persistent')}
-                  className="accent-blue-600"
+                  name="live_filter"
+                  checked={liveFilter === 'noaa21'}
+                  onChange={() => setLiveFilter('noaa21')}
+                  className="accent-orange-600"
                 />
-                Persistent
+                VIIRS NOAA-21 ({noaa21Count})
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                <input
+                  type="radio"
+                  name="live_filter"
+                  checked={liveFilter === 'day'}
+                  onChange={() => setLiveFilter('day')}
+                  className="accent-orange-600"
+                />
+                Daytime (D)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                <input
+                  type="radio"
+                  name="live_filter"
+                  checked={liveFilter === 'night'}
+                  onChange={() => setLiveFilter('night')}
+                  className="accent-orange-600"
+                />
+                Nighttime (N)
+              </label>
+
+              {/* Phase 3 Filter */}
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-purple-800 hover:text-purple-950 pt-1 border-t border-gray-100">
+                <input
+                  type="radio"
+                  name="live_filter"
+                  checked={liveFilter === 'persistent'}
+                  onChange={() => setLiveFilter('persistent')}
+                  className="accent-purple-600"
+                />
+                Persistent Phase 3 ({persistentCount})
+              </label>
+
+              {/* Phase 4 Filter */}
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-cyan-800 hover:text-cyan-950">
+                <input
+                  type="radio"
+                  name="live_filter"
+                  checked={liveFilter === 'mapped_industry'}
+                  onChange={() => setLiveFilter('mapped_industry')}
+                  className="accent-cyan-600"
+                />
+                Mapped Industry Phase 4 ({mappedIndustryCount})
               </label>
             </div>
-          )}
+
+            {/* Day Range Selector */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
+                NASA Day Range
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                {[1, 2, 3].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDayRange(d)}
+                    className={`py-1 rounded text-center font-bold transition-all ${
+                      dayRange === d
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {d} {d === 1 ? 'Day' : 'Days'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Map Container */}
@@ -519,6 +525,8 @@ export function Dashboard() {
           <Map
             hotspots={filteredHotspots}
             persistenceMap={persistenceMap}
+            industrialFeatures={industrialFeatures}
+            industrialLayerVisible={industrialLayerVisible}
             onHotspotClick={handleHotspotClick}
           />
         </div>
@@ -528,6 +536,7 @@ export function Dashboard() {
           hotspot={selectedHotspot} 
           analysis={analysis} 
           persistenceProfile={selectedHotspot ? persistenceMap[selectedHotspot.id] : null}
+          industrialContextProfile={selectedHotspot ? industrialContextMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
         />

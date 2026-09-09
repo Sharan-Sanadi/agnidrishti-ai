@@ -32,6 +32,9 @@ export interface ThermalObservation {
   last_seen_at?: string;
   ingestion_count?: number;
   stored_in_postgis?: boolean;
+  frp_mw?: number | null;
+  acquired_at?: string;
+  is_live_firms?: boolean;
   geojson?: {
     type: string;
     coordinates: [number, number]; // [longitude, latitude]
@@ -100,96 +103,137 @@ export interface FIRMSHotspotsResponse {
   observations: ThermalObservation[];
 }
 
-export interface Hotspot {
-  id: string;
+export interface AnalysisResponse {
   latitude: number;
   longitude: number;
-  acquired_at: string;
-  source: string;
-  satellite?: string;
-  instrument?: string;
-  frp_mw?: number | null;
-  brightness_ti4?: number | null;
-  brightness_ti5?: number | null;
-  confidence: string;
-  confidence_normalized?: string | null;
-  day_night?: string | null;
-  scan?: number | null;
-  track?: number | null;
-  firms_version?: string | null;
-  ingestion_time_utc?: string;
-  first_ingested_at?: string;
-  last_seen_at?: string;
-  ingestion_count?: number;
-  stored_in_postgis?: boolean;
-  risk?: string;
-  persistent?: boolean;
-  classification?: string;
-  is_live_firms?: boolean;
+  analysis_timestamp: string;
+  nearby_observations_count: number;
+  observations: ThermalObservation[];
 }
 
-export interface HotspotListResponse {
-  hotspots: Hotspot[];
-  total: number;
-  analysis_mode: string;
-}
-
-export interface EvidenceItem {
-  type: string;
-  label: string;
-  value: number | string;
-  unit?: string;
-  weight_or_importance?: number;
-}
-
-export interface AnalysisResponse {
-  hotspot: Hotspot;
-  thermal_context: Record<string, unknown>;
-  temporal_context: Record<string, unknown>;
-  industrial_context: {
-    industrial_zone?: boolean;
-    industrial_facilities_500m?: number;
-    distance_to_nearest_m?: number;
-    infrastructure_types?: string[];
+export interface PersistenceProfileResponse {
+  observation_id: string;
+  analysis_as_of: string;
+  radius_m: number;
+  algorithm_version: string;
+  raw_detection_count_7d: number;
+  raw_detection_count_30d: number;
+  active_days_7d: number;
+  active_days_30d: number;
+  active_weeks_30d: number;
+  first_seen_30d?: string | null;
+  last_seen_30d?: string | null;
+  temporal_span_days_30d: number;
+  history_coverage_days_7d: number;
+  history_coverage_days_30d: number;
+  history_coverage_ratio_30d: number;
+  persistence_index: number;
+  persistence_class: string;
+  explanation: string;
+  score_components: {
+    active_days_score: number;
+    temporal_span_score: number;
+    multi_week_score: number;
+    recency_score: number;
   };
-  landcover_context: {
-    dominant_class?: string;
-    built_area_ratio?: number;
-    vegetation_ratio?: number;
-    source?: string;
-  };
-  satellite_context: Record<string, unknown>;
-  classification: {
-    top_level_class: string;
-    subclass: string;
-    confidence: number;
-    reasoning_summary: string;
-    evidence: EvidenceItem[];
-    model_version: string;
-    requires_ground_verification: boolean;
-  };
-  anomaly_score: number;
-  warnings: string[];
-  data_sources: Array<Record<string, unknown>>;
-  data_quality: Record<string, unknown>;
-  analysis_mode: string;
 }
 
-export const api = {
-  async getHotspots(): Promise<HotspotListResponse> {
-    const response = await apiClient.get<HotspotListResponse>('/hotspots');
-    return response.data;
-  },
+export interface BatchPersistenceResponse {
+  algorithm_version: string;
+  count: number;
+  profiles: Record<string, PersistenceProfileResponse>;
+}
 
+export interface BackfillResponse {
+  status: string;
+  days_history: number;
+  requested_bbox: Record<string, number>;
+  sources: string[];
+  chunks_total: number;
+  chunks_successful: number;
+  chunks_failed: number;
+  total_fetched: number;
+  total_upserted: number;
+  chunk_details: Array<Record<string, unknown>>;
+}
+
+export type Hotspot = ThermalObservation;
+
+export interface NearestFeatureDTO {
+  osm_uid: string;
+  name?: string | null;
+  operator?: string | null;
+  feature_category: string;
+  geometry_quality: string;
+  distance_m: number;
+  inside_industrial_area: boolean;
+}
+
+export interface IndustrialContextProfileResponse {
+  observation_id: string;
+  radius_m: number;
+  context_class: 'STRONG' | 'MODERATE' | 'WEAK' | 'NONE' | 'UNAVAILABLE';
+  coverage_status: 'ADEQUATE' | 'PARTIAL' | 'MISSING' | 'FAILED';
+  nearest_industrial_distance_m?: number | null;
+  nearest_feature?: NearestFeatureDTO | null;
+  nearest_flare_distance_m?: number | null;
+  nearest_chimney_distance_m?: number | null;
+  nearest_refinery_distance_m?: number | null;
+  nearest_power_plant_distance_m?: number | null;
+  nearest_industrial_area_distance_m?: number | null;
+  inside_industrial_area: boolean;
+  industrial_feature_count_500m: number;
+  industrial_feature_count_1km: number;
+  industrial_feature_count_2km: number;
+  industrial_feature_count_5km: number;
+  has_flare_nearby: boolean;
+  has_chimney_nearby: boolean;
+  has_refinery_nearby: boolean;
+  has_power_plant_nearby: boolean;
+  evidence_summary: Record<string, unknown>;
+  algorithm_version: string;
+  osm_snapshot_at?: string | null;
+  calculated_at: string;
+}
+
+export interface BatchIndustrialContextResponse {
+  total_requested: number;
+  profiles: Record<string, IndustrialContextProfileResponse>;
+}
+
+export interface OSMFeatureGeoJSON {
+  type: 'Feature';
+  id: string;
+  geometry: {
+    type: string;
+    coordinates: unknown;
+  };
+  properties: {
+    osm_uid: string;
+    name?: string | null;
+    operator?: string | null;
+    feature_category: string;
+    geometry_quality: string;
+    thermal_relevance: string;
+    tags: Record<string, unknown>;
+  };
+}
+
+export interface OSMFeatureCollection {
+  type: 'FeatureCollection';
+  features: OSMFeatureGeoJSON[];
+  total_count: number;
+}
+
+export const apiService = {
   async getFIRMSHotspots(params?: {
     west?: number;
     south?: number;
     east?: number;
     north?: number;
     days?: number;
-    sources?: string;
+    sources?: string[];
     date?: string;
-    force_refresh?: boolean;
   }): Promise<FIRMSHotspotsResponse> {
     const response = await apiClient.get<FIRMSHotspotsResponse>('/firms/hotspots', {
       params,
@@ -253,7 +297,6 @@ export const api = {
       return response.data;
     }
 
-    // Chunk into bounded batches of 500 and merge
     const mergedProfiles: Record<string, PersistenceProfileResponse> = {};
     let algorithmVersion = 'temporal_persistence_v1';
 
@@ -278,6 +321,64 @@ export const api = {
     };
   },
 
+  async getObservationIndustrialContext(observationId: string, radiusM?: number): Promise<IndustrialContextProfileResponse> {
+    const response = await apiClient.get<IndustrialContextProfileResponse>(`/observations/${observationId}/industrial-context`, {
+      params: radiusM ? { radius_m: radiusM } : undefined,
+    });
+    return response.data;
+  },
+
+  async getBatchIndustrialContext(observationIds: string[]): Promise<BatchIndustrialContextResponse> {
+    const CHUNK_SIZE = 500;
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchIndustrialContextResponse>('/industrial-context/batch', {
+        observation_ids: observationIds,
+      });
+      return response.data;
+    }
+
+    const mergedProfiles: Record<string, IndustrialContextProfileResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      const response = await apiClient.post<BatchIndustrialContextResponse>('/industrial-context/batch', {
+        observation_ids: chunk,
+      });
+      if (response.data?.profiles) {
+        Object.assign(mergedProfiles, response.data.profiles);
+      }
+    }
+
+    return {
+      total_requested: observationIds.length,
+      profiles: mergedProfiles,
+    };
+  },
+
+  async getOSMIndustrialFeatures(params?: {
+    west?: number;
+    south?: number;
+    east?: number;
+    north?: number;
+    limit?: number;
+  }): Promise<OSMFeatureCollection> {
+    const response = await apiClient.get<OSMFeatureCollection>('/osm/industrial/features', {
+      params,
+    });
+    return response.data;
+  },
+
+  async syncOSMIndustrial(params: {
+    west: number;
+    south: number;
+    east: number;
+    north: number;
+    force_refresh?: boolean;
+  }): Promise<unknown> {
+    const response = await apiClient.post('/osm/industrial/sync', params);
+    return response.data;
+  },
+
   async backfillHistory(params?: {
     days_history?: number;
     west?: number;
@@ -291,49 +392,3 @@ export const api = {
     return response.data;
   }
 };
-
-export interface PersistenceProfileResponse {
-  observation_id: string;
-  analysis_as_of: string;
-  radius_m: number;
-  algorithm_version: string;
-  raw_detection_count_7d: number;
-  raw_detection_count_30d: number;
-  active_days_7d: number;
-  active_days_30d: number;
-  active_weeks_30d: number;
-  first_seen_30d?: string | null;
-  last_seen_30d?: string | null;
-  temporal_span_days_30d: number;
-  history_coverage_days_7d: number;
-  history_coverage_days_30d: number;
-  history_coverage_ratio_30d: number;
-  persistence_index: number;
-  persistence_class: string;
-  explanation: string;
-  score_components: {
-    active_days_score: number;
-    temporal_span_score: number;
-    multi_week_score: number;
-    recency_score: number;
-  };
-}
-
-export interface BatchPersistenceResponse {
-  algorithm_version: string;
-  count: number;
-  profiles: Record<string, PersistenceProfileResponse>;
-}
-
-export interface BackfillResponse {
-  status: string;
-  days_history: number;
-  requested_bbox: Record<string, number>;
-  sources: string[];
-  chunks_total: number;
-  chunks_successful: number;
-  chunks_failed: number;
-  total_fetched: number;
-  total_upserted: number;
-  chunk_details: Array<Record<string, unknown>>;
-}
