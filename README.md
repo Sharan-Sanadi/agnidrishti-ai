@@ -652,10 +652,6 @@ pnpm build:web
 
 ---
 
-## 👥 Contributors
-
----
-
 <div align="center">
   <b>Built with scientific integrity for Smart India Hackathon 2026 (Problem Statement: SIH26162)</b><br/>
   <i>Engineered for mission-critical industrial disaster prevention and environmental monitoring.</i>
