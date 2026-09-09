@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 3 Verified](https://img.shields.io/badge/Status-Phase%203%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 4 Verified](https://img.shields.io/badge/Status-Phase%204%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,13 +15,13 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), coverage-aware dataset history verification, and strict future-leakage-safe temporal persistence classification.
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), and strict 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`).
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 3 Verified
+## ⚡ Executive Summary — Phase 4 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -29,7 +29,8 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 1 — NASA Ingestion** | Live NOAA-20 & NOAA-21 Area API ingestion, Defensive CSV parser, Canonical DTOs | 🟢 **Verified** |
 | **Phase 2 — PostGIS Storage** | Normalized PostGIS persistence, SRID 4326 Point geometry, Idempotent bulk upsert, Spatial/Temporal API | 🟢 **Verified** |
 | **Phase 3 — Temporal Persistence** | PostGIS ST_DWithin(750m) spatiotemporal recurrence, 30-day historical FIRMS backfill, distinct active UTC days, coverage gating, zero-future-leakage Temporal Persistence V1 index & classification | 🟢 **Verified** |
-| **Phase 4 — Industrial Context** | OpenStreetMap (OSM) infrastructure cross-referencing & proximity tagging | ⏳ **Next Phase** |
+| **Phase 4 — Industrial Context** | Server-side OpenStreetMap Overpass client, 9-category industrial taxonomy, PostGIS spatial feature store (`osm_industrial_features`), metric distance (`ST_Distance` geography), polygon containment (`ST_Covers`), 5km full-envelope coverage validation (`osm_context_coverage`), non-destructive Alembic migration, 500-batch ID API with frontend 1500-ID chunking | 🟢 **Verified** |
+| **Phase 5 — Land-Cover Baseline** | Land-Cover Intelligence (Dynamic World) | ⏳ **Next Phase** |
 
 ---
 
@@ -480,8 +481,8 @@ pnpm build:web
 [Phase 1] NASA FIRMS Real Thermal Ingestion ─────► 🟢 VERIFIED
 [Phase 2] PostGIS Storage & Normalization ───────► 🟢 VERIFIED
 [Phase 3] Temporal Persistence Intelligence ─────► 🟢 VERIFIED
-[Phase 4] Industrial Context (OSM) ──────────────► ⏳ NEXT UP
-[Phase 5] Land-Cover Baseline (Dynamic World) ───► ⬜ PLANNED
+[Phase 4] Industrial Context (OSM) ──────────────► 🟢 VERIFIED
+[Phase 5] Land-Cover Baseline (Dynamic World) ───► ⏳ NEXT UP
 [Phase 6] Sentinel-2 MSI Optical Cross-Ref ──────► ⬜ PLANNED
 [Phase 7] Geospatial Feature Fusion ─────────────► ⬜ PLANNED
 [Phase 8] ML Industrial Fire Classification ─────► ⬜ PLANNED
