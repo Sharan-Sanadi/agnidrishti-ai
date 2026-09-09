@@ -93,6 +93,17 @@ class Settings(BaseSettings):
     # ─── OSM / Overpass ───
     overpass_api_url: str = "https://overpass-api.de/api/interpreter"
 
+    # ─── Phase 5 ESA WorldCover ───
+    worldcover_base_url: str = "https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map"
+    worldcover_year: int = 2021
+    worldcover_version: str = "v200"
+    worldcover_product_name: str = "ESA WorldCover 10 m 2021"
+    worldcover_max_radius_m: float = 1000.0
+    worldcover_timeout_seconds: float = 30.0
+    worldcover_max_concurrency: int = 4
+    worldcover_cache_dir: str = "data/cache/worldcover"
+    worldcover_algorithm_version: str = "land_cover_v1"
+
     # ─── Google Earth Engine ───
     gee_project_id: str = ""
     google_application_credentials: str = ""

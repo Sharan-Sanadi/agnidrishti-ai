@@ -1,11 +1,18 @@
-import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin } from 'lucide-react';
-import { AnalysisResponse, ThermalObservation, PersistenceProfileResponse, IndustrialContextProfileResponse } from '../services/api';
+import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees } from 'lucide-react';
+import {
+  AnalysisResponse,
+  ThermalObservation,
+  PersistenceProfileResponse,
+  IndustrialContextProfileResponse,
+  LandCoverProfileResponse,
+} from '../services/api';
 
 interface AnalysisDrawerProps {
   hotspot: ThermalObservation | null;
   analysis: AnalysisResponse | null;
   persistenceProfile?: PersistenceProfileResponse | null;
   industrialContextProfile?: IndustrialContextProfileResponse | null;
+  landCoverProfile?: LandCoverProfileResponse | null;
   loading: boolean;
   onClose: () => void;
 }
@@ -15,6 +22,7 @@ export function AnalysisDrawer({
   analysis,
   persistenceProfile,
   industrialContextProfile,
+  landCoverProfile,
   loading,
   onClose,
 }: AnalysisDrawerProps) {
@@ -318,6 +326,145 @@ export function AnalysisDrawer({
           ) : (
             <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600">
               Evaluating PostGIS metric distance to OpenStreetMap industrial infrastructure...
+            </div>
+          )}
+        </div>
+
+        {/* Phase 5 Land-Cover Context Panel (ESA WorldCover) */}
+        <div className="space-y-2">
+          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Trees size={14} className="text-emerald-600" /> Land-Cover Context (Phase 5 — ESA WorldCover)
+          </h3>
+
+          {landCoverProfile ? (
+            <div className="bg-emerald-50/70 rounded-lg p-3.5 border border-emerald-200 text-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-black px-2.5 py-1 rounded uppercase tracking-wider border ${
+                  landCoverProfile.context_class.includes('CROPLAND')
+                    ? 'bg-amber-700 text-white border-amber-800'
+                    : landCoverProfile.context_class.includes('TREE_COVER')
+                    ? 'bg-emerald-800 text-white border-emerald-900'
+                    : landCoverProfile.context_class.includes('BUILT_UP')
+                    ? 'bg-rose-700 text-white border-rose-800'
+                    : landCoverProfile.context_class.includes('GRASSLAND')
+                    ? 'bg-lime-700 text-white border-lime-800'
+                    : landCoverProfile.context_class.includes('MIXED')
+                    ? 'bg-slate-700 text-white border-slate-800'
+                    : 'bg-gray-600 text-white border-gray-700'
+                }`}>
+                  {landCoverProfile.context_class.replace(/_/g, ' ')}
+                </span>
+                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${
+                  landCoverProfile.coverage_status === 'COMPLETE'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : landCoverProfile.coverage_status === 'PARTIAL'
+                    ? 'bg-amber-100 text-amber-800 border-amber-300'
+                    : 'bg-red-100 text-red-800 border-red-300'
+                }`}>
+                  {landCoverProfile.coverage_status} COVERAGE
+                </span>
+              </div>
+
+              {/* Point Pixel Classification */}
+              <div className="bg-white p-3 rounded border border-emerald-200 space-y-1 shadow-sm">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 text-[11px]">Point Pixel (Exact Coordinate):</span>
+                  <span className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                    {landCoverProfile.point_class_name.replace(/_/g, ' ')} ({landCoverProfile.point_class_code})
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-slate-500 pt-1 border-t border-slate-100">
+                  <span>Source Tile:</span>
+                  <span className="font-mono font-medium text-slate-700">{landCoverProfile.point_tile_id}</span>
+                </div>
+              </div>
+
+              {/* Multi-Scale Neighborhood Dominance */}
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Multi-Scale Neighborhood Dominance
+                </span>
+                <div className="grid grid-cols-3 gap-1.5 text-center text-[11px]">
+                  <div className="bg-white p-2 rounded border border-emerald-100">
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">250m Dominant</span>
+                    <span className="font-bold text-slate-900 block truncate">
+                      {landCoverProfile.dominant_class_250m.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      {(landCoverProfile.dominant_fraction_250m * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-emerald-100">
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">500m Dominant</span>
+                    <span className="font-bold text-slate-900 block truncate">
+                      {landCoverProfile.dominant_class_500m.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      {(landCoverProfile.dominant_fraction_500m * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-emerald-100">
+                    <span className="text-slate-400 block text-[9px] uppercase font-semibold">1km Dominant</span>
+                    <span className="font-bold text-slate-900 block truncate">
+                      {landCoverProfile.dominant_class_1000m.replace(/_/g, ' ')}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      {(landCoverProfile.dominant_fraction_1000m * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 500m Composition Breakdown (Sorted Descending) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    500m Land-Cover Composition
+                  </span>
+                  <span className="text-[10px] text-slate-400">
+                    {landCoverProfile.valid_pixel_count_500m} valid px ({(landCoverProfile.valid_fraction_500m * 100).toFixed(0)}%)
+                  </span>
+                </div>
+                <div className="bg-white rounded border border-emerald-200 overflow-hidden divide-y divide-slate-100">
+                  {Object.entries(landCoverProfile.class_distribution_500m || {})
+                    .filter(([, frac]) => frac > 0.005)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([cls, frac]) => (
+                      <div key={cls} className="flex items-center justify-between px-2.5 py-1.5 text-[11px]">
+                        <span className="font-medium text-slate-700">{cls.replace(/_/g, ' ')}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div
+                              className="bg-emerald-600 h-full rounded-full"
+                              style={{ width: `${Math.min(100, Math.round(frac * 100))}%` }}
+                            />
+                          </div>
+                          <span className="font-mono font-bold text-slate-900 w-10 text-right">
+                            {(frac * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Attribution & Scientific Disclaimer */}
+              <div className="pt-2 border-t border-emerald-200 text-[10px] text-slate-500 space-y-1">
+                <p className="font-semibold text-slate-600">
+                  Source: {landCoverProfile.product_name} {landCoverProfile.product_version} (~10m)
+                </p>
+                <p className="text-[9.5px] leading-tight text-slate-500">
+                  ©️ ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium
+                </p>
+                <p className="leading-tight text-[9px] text-amber-800/80 bg-amber-50 p-1.5 rounded border border-amber-200/60">
+                  Notice: ESA WorldCover 2021 baseline reflects 2021 physical land cover (~10m). Land-cover context does NOT confirm fire cause (e.g. Cropland ≠ confirmed agricultural fire).
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600">
+              Evaluating ESA WorldCover 10m 2021 v200 raster pixel context...
             </div>
           )}
         </div>

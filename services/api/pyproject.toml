@@ -23,6 +23,8 @@ dependencies = [
     # Data / scientific
     "numpy>=1.26.0",
     "shapely>=2.0.0",
+    "rasterio>=1.4.0",
+    "pyproj>=3.7.0",
 ]
 
 [project.optional-dependencies]

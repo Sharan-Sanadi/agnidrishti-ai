@@ -225,6 +225,99 @@ export interface OSMFeatureCollection {
   total_count: number;
 }
 
+export type WorldCoverClass =
+  | 'TREE_COVER'
+  | 'SHRUBLAND'
+  | 'GRASSLAND'
+  | 'CROPLAND'
+  | 'BUILT_UP'
+  | 'BARE_SPARSE_VEGETATION'
+  | 'SNOW_AND_ICE'
+  | 'PERMANENT_WATER'
+  | 'HERBACEOUS_WETLAND'
+  | 'MANGROVES'
+  | 'MOSS_AND_LICHEN'
+  | 'UNKNOWN_CODE'
+  | 'UNAVAILABLE';
+
+export type LandCoverContextClass =
+  | 'TREE_COVER_DOMINANT'
+  | 'SHRUBLAND_DOMINANT'
+  | 'GRASSLAND_DOMINANT'
+  | 'CROPLAND_DOMINANT'
+  | 'BUILT_UP_DOMINANT'
+  | 'BARE_SPARSE_DOMINANT'
+  | 'SNOW_ICE_DOMINANT'
+  | 'WATER_DOMINANT'
+  | 'WETLAND_DOMINANT'
+  | 'MANGROVE_DOMINANT'
+  | 'MOSS_LICHEN_DOMINANT'
+  | 'MIXED'
+  | 'UNAVAILABLE'
+  | 'NOT_EVALUATED';
+
+export type LandCoverCoverageStatus = 'COMPLETE' | 'PARTIAL' | 'UNAVAILABLE';
+
+export interface LandCoverProfileResponse {
+  observation_id: string;
+  provider: string;
+  product_name: string;
+  product_version: string;
+  source_year: number;
+  algorithm_version: string;
+  point_class_code: number;
+  point_class_name: string;
+  point_tile_id: string;
+  context_class: LandCoverContextClass | string;
+  coverage_status: LandCoverCoverageStatus | string;
+  dominant_class_250m: string;
+  dominant_fraction_250m: number;
+  dominant_class_500m: string;
+  dominant_fraction_500m: number;
+  dominant_class_1000m: string;
+  dominant_fraction_1000m: number;
+  class_distribution_250m: Record<string, number>;
+  class_distribution_500m: Record<string, number>;
+  class_distribution_1000m: Record<string, number>;
+  valid_pixel_count_250m: number;
+  valid_pixel_count_500m: number;
+  valid_pixel_count_1000m: number;
+  valid_fraction_250m: number;
+  valid_fraction_500m: number;
+  valid_fraction_1000m: number;
+  cropland_fraction_500m: number;
+  tree_cover_fraction_500m: number;
+  built_up_fraction_500m: number;
+  grassland_fraction_500m: number;
+  water_fraction_500m: number;
+  shrubland_fraction_500m: number;
+  wetland_fraction_500m: number;
+  bare_sparse_fraction_500m: number;
+  mangrove_fraction_500m: number;
+  moss_lichen_fraction_500m: number;
+  snow_ice_fraction_500m: number;
+  tiles_used: string[];
+  sampled_at: string;
+}
+
+export interface BatchLandCoverResponse {
+  total_requested: number;
+  count: number;
+  profiles: Record<string, LandCoverProfileResponse>;
+}
+
+export interface LandCoverSyncResponse {
+  status: string;
+  total_requested: number;
+  cached_profiles_reused: number;
+  profiles_computed: number;
+  profiles_unavailable: number;
+  unique_tiles_required: string[];
+  tile_cache_hits: number;
+  remote_tile_downloads: number;
+  duration_seconds: number;
+}
+
 export const apiService = {
   async getFIRMSHotspots(params?: {
     west?: number;
@@ -389,6 +482,52 @@ export const apiService = {
     chunk_days?: number;
   }): Promise<BackfillResponse> {
     const response = await apiClient.post<BackfillResponse>('/history/backfill', params);
+    return response.data;
+  },
+
+  async getObservationLandCover(observationId: string): Promise<LandCoverProfileResponse> {
+    const response = await apiClient.get<LandCoverProfileResponse>(`/observations/${observationId}/land-cover`);
+    return response.data;
+  },
+
+  async getBatchLandCover(observationIds: string[]): Promise<BatchLandCoverResponse> {
+    const CHUNK_SIZE = 500;
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchLandCoverResponse>('/land-cover/batch', {
+        observation_ids: observationIds,
+      });
+      return response.data;
+    }
+
+    const mergedProfiles: Record<string, LandCoverProfileResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<BatchLandCoverResponse>('/land-cover/batch', {
+          observation_ids: chunk,
+        });
+        if (response.data?.profiles) {
+          Object.assign(mergedProfiles, response.data.profiles);
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 5 Batch Land Cover] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      total_requested: observationIds.length,
+      count: Object.keys(mergedProfiles).length,
+      profiles: mergedProfiles,
+    };
+  },
+
+  async syncLandCover(params?: {
+    observation_ids?: string[];
+    limit?: number;
+    force_recompute?: boolean;
+  }): Promise<LandCoverSyncResponse> {
+    const response = await apiClient.post<LandCoverSyncResponse>('/land-cover/sync', params || {});
     return response.data;
   }
 };

@@ -47,6 +47,11 @@ data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+*.tif
+*.tiff
+*.part
 
 # ─── Logs ───
 *.log

@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     firms,
     hotspots,
     industrial_context,
+    land_cover,
     meta,
     observations,
     persistence,
@@ -20,4 +21,5 @@ api_router.include_router(firms.router, prefix="/firms", tags=["NASA FIRMS"])
 api_router.include_router(observations.router, prefix="/observations", tags=["PostGIS Observations"])
 api_router.include_router(persistence.router, tags=["Temporal Persistence"])
 api_router.include_router(industrial_context.router, tags=["Industrial Context Intelligence"])
+api_router.include_router(land_cover.router, tags=["Land-Cover Intelligence"])
 api_router.include_router(analysis.router, prefix="/analyze", tags=["Analysis"])

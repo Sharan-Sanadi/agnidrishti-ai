@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 4 Verified](https://img.shields.io/badge/Status-Phase%204%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 5 Verified](https://img.shields.io/badge/Status-Phase%205%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,13 +15,13 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), and strict 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`).
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), and real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection).
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 4 Verified
+## ⚡ Executive Summary — Phase 5 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -30,7 +30,8 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 2 — PostGIS Storage** | Normalized PostGIS persistence, SRID 4326 Point geometry, Idempotent bulk upsert, Spatial/Temporal API | 🟢 **Verified** |
 | **Phase 3 — Temporal Persistence** | PostGIS ST_DWithin(750m) spatiotemporal recurrence, 30-day historical FIRMS backfill, distinct active UTC days, coverage gating, zero-future-leakage Temporal Persistence V1 index & classification | 🟢 **Verified** |
 | **Phase 4 — Industrial Context** | Server-side OpenStreetMap Overpass client, 9-category industrial taxonomy, PostGIS spatial feature store (`osm_industrial_features`), metric distance (`ST_Distance` geography), polygon containment (`ST_Covers`), 5km full-envelope coverage validation (`osm_context_coverage`), non-destructive Alembic migration, 500-batch ID API with frontend 1500-ID chunking | 🟢 **Verified** |
-| **Phase 5 — Land-Cover Baseline** | Land-Cover Intelligence (Dynamic World) | ⏳ **Next Phase** |
+| **Phase 5 — Land-Cover Intelligence** | Real ESA WorldCover 10 m 2021 v200 raster integration via cloud-optimized GeoTIFFs, 11-class standard taxonomy, multi-scale circular sampling (250m, 500m, 1000m) with true AEQD projection masks (excluding rectangular window corners), 60% dominance threshold contextual classification (`CROPLAND_DOMINANT`, `TREE_COVER_DOMINANT`, `BUILT_UP_DOMINANT`, `MIXED`, etc.), PostGIS persistence (`thermal_land_cover_profiles`), and UI telemetry drawer visualization | 🟢 **Verified** |
+| **Phase 6 — Sentinel-2 MSI Optical Cross-Ref** | Sentinel-2 L2A BOA reflectance, multi-band index extraction (NDVI, NBR, NBR2, SWIR), baseline contrast | ⏳ **Next Phase** |
 
 ---
 
@@ -156,13 +157,13 @@ To ensure complete scientific and technical transparency for the SIH 2026 evalua
 | :--- | :---: | :---: | :--- |
 | **Satellite Hotspot Ingestion** | Phase 1 | ✅ **Live** | Ingests real VIIRS NOAA-20 & NOAA-21 Area API feeds from NASA FIRMS. |
 | **PostGIS Spatial Persistence** | Phase 2 | ✅ **Live** | Normalizes detections into PostGIS Point SRID 4326 with idempotent upserts. |
-| **Temporal Persistence Scoring** | Phase 3 | ⏳ *Pending* | Multi-day recurrence detection (e.g. 7/30/90-day persistence) will be computed in Phase 3. |
-| **Industrial Context Cross-Ref** | Phase 4 | ⏳ *Pending* | Proximity to OpenStreetMap industrial zones, refineries, and factories belongs to Phase 4. |
-| **Land-Cover Context Filtering** | Phase 5 | ⏳ *Pending* | Dynamic World / ESA WorldCover baseline classification belongs to Phase 5. |
+| **Temporal Persistence Scoring** | Phase 3 | ✅ **Live** | Multi-day recurrence detection (ST_DWithin 750m, 30-day historical window) with Temporal Persistence V1 index & classification. |
+| **Industrial Context Cross-Ref** | Phase 4 | ✅ **Live** | Proximity to OpenStreetMap industrial zones, refineries, and flare stacks (ST_Distance, ST_Covers) with 5km coverage validation. |
+| **Land-Cover Context Filtering** | Phase 5 | ✅ **Live** | Real ESA WorldCover 10 m 2021 v200 multi-scale circular sampling (250m, 500m, 1000m via AEQD) with 60% dominance threshold contextual classification. |
 | **Multispectral & ML Inference** | Phase 6–8 | ⏳ *Pending* | Sentinel-2 SWIR/NIR index fusion and ML fire classification belong to Phase 8. |
 
 > [!NOTE]
-> Agnidrishti strictly avoids generating synthetic classifications or premature confidence scores. Detections currently represent authentic satellite observations stored in PostGIS.
+> Agnidrishti strictly avoids generating synthetic classifications or premature confidence scores. Detections represent authentic satellite observations stored in PostGIS, corroborated by empirical OpenStreetMap geometries and ESA WorldCover satellite land-cover rasters.
 
 ---
 
@@ -229,6 +230,36 @@ CREATE TABLE public.ingestion_runs (
     error_summary       TEXT,
     created_at          TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+### `thermal_land_cover_profiles`
+Real ESA WorldCover 10 m 2021 v200 multi-scale metric circular land-cover analysis cache.
+
+```sql
+CREATE TABLE public.thermal_land_cover_profiles (
+    observation_id              VARCHAR(64) PRIMARY KEY REFERENCES thermal_observations(observation_id) ON DELETE CASCADE,
+    point_pixel_code            INTEGER,
+    point_pixel_class           VARCHAR(64),
+    dominance_250m_code         INTEGER,
+    dominance_250m_class        VARCHAR(64),
+    dominance_250m_fraction     DOUBLE PRECISION,
+    dominance_500m_code         INTEGER,
+    dominance_500m_class        VARCHAR(64),
+    dominance_500m_fraction     DOUBLE PRECISION,
+    dominance_1000m_code        INTEGER,
+    dominance_1000m_class       VARCHAR(64),
+    dominance_1000m_fraction    DOUBLE PRECISION,
+    context_class               VARCHAR(64) NOT NULL,       -- 'CROPLAND_DOMINANT', 'TREE_COVER_DOMINANT', 'BUILT_UP_DOMINANT', 'MIXED', etc.
+    coverage_status             VARCHAR(32) NOT NULL,       -- 'COMPLETE', 'PARTIAL', 'UNAVAILABLE'
+    worldcover_tile             VARCHAR(16),                -- e.g. 'N12E075'
+    scale_distributions         JSONB NOT NULL,             -- Pixel distributions for 250m, 500m, 1000m scales
+    algorithm_version           VARCHAR(64) NOT NULL,       -- 'worldcover_v1'
+    created_at                  TIMESTAMPTZ DEFAULT NOW(),
+    updated_at                  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_thermal_lc_context ON public.thermal_land_cover_profiles (context_class);
+CREATE INDEX idx_thermal_lc_tile ON public.thermal_land_cover_profiles (worldcover_tile);
 ```
 
 ---
@@ -358,6 +389,57 @@ CREATE TABLE public.ingestion_runs (
 
 ---
 
+### Phase 3 Temporal Persistence Endpoints
+
+#### 1. Single Observation Persistence Profile
+- **Method**: `GET`
+- **Route**: `/api/v1/observations/{observation_id}/persistence`
+- **Response**: Spatiotemporal recurrence within 750m, distinct active UTC days, and `PERSISTENT`, `RECURRING`, or `EPHEMERAL` classification.
+
+#### 2. Batch Persistence Analysis
+- **Method**: `POST`
+- **Route**: `/api/v1/persistence/batch`
+- **Payload**: `{"observation_ids": ["firms_..."]}` (up to 500 IDs per chunk)
+- **Response**: Map of `{observation_id: PersistenceProfileResponse}`.
+
+---
+
+### Phase 4 Industrial Context Endpoints
+
+#### 1. Single Observation Industrial Profile
+- **Method**: `GET`
+- **Route**: `/api/v1/observations/{observation_id}/industrial-context`
+- **Response**: Proximity to nearest OSM industrial feature (`distance_meters`, `is_contained`, `industrial_category`, `context_class`: `STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`).
+
+#### 2. Batch Industrial Context
+- **Method**: `POST`
+- **Route**: `/api/v1/industrial-context/batch`
+- **Payload**: `{"observation_ids": ["firms_..."]}`
+- **Response**: Map of `{observation_id: IndustrialContextProfileResponse}`.
+
+---
+
+### Phase 5 Land-Cover Intelligence Endpoints
+
+#### 1. Single Observation Land-Cover Profile
+- **Method**: `GET`
+- **Route**: `/api/v1/observations/{observation_id}/land-cover`
+- **Response**: Point pixel class, circular distributions at 250m, 500m, 1000m, 60% dominance evaluation, and context classification (`CROPLAND_DOMINANT`, `TREE_COVER_DOMINANT`, `BUILT_UP_DOMINANT`, `MIXED`, etc.).
+
+#### 2. Batch Land-Cover Profiles
+- **Method**: `POST`
+- **Route**: `/api/v1/land-cover/batch`
+- **Payload**: `{"observation_ids": ["firms_..."]}` (up to 500 IDs per chunk)
+- **Response**: Map of `{observation_id: LandCoverProfileResponse}`.
+
+#### 3. Land-Cover Synchronize / Precompute
+- **Method**: `POST`
+- **Route**: `/api/v1/land-cover/sync`
+- **Payload**: `{"observation_ids": [...], "force_refresh": false}`
+- **Response**: `{status, total_requested, computed_count, cached_count, failed_count}`.
+
+---
+
 ## 🚀 Quickstart & Developer Guide
 
 ### Prerequisites
@@ -482,8 +564,8 @@ pnpm build:web
 [Phase 2] PostGIS Storage & Normalization ───────► 🟢 VERIFIED
 [Phase 3] Temporal Persistence Intelligence ─────► 🟢 VERIFIED
 [Phase 4] Industrial Context (OSM) ──────────────► 🟢 VERIFIED
-[Phase 5] Land-Cover Baseline (Dynamic World) ───► ⏳ NEXT UP
-[Phase 6] Sentinel-2 MSI Optical Cross-Ref ──────► ⬜ PLANNED
+[Phase 5] Land-Cover Intelligence (WorldCover) ─► 🟢 VERIFIED
+[Phase 6] Sentinel-2 MSI Optical Cross-Ref ──────► ⏳ NEXT UP
 [Phase 7] Geospatial Feature Fusion ─────────────► ⬜ PLANNED
 [Phase 8] ML Industrial Fire Classification ─────► ⬜ PLANNED
 [Phase 9] Explainability & Attribution ──────────► ⬜ PLANNED

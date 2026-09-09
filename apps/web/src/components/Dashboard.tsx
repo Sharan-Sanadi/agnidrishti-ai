@@ -9,16 +9,18 @@ import {
   FIRMSHotspotsResponse,
   PersistenceProfileResponse,
   IndustrialContextProfileResponse,
+  LandCoverProfileResponse,
   OSMFeatureCollection,
 } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees } from 'lucide-react';
 
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
 type DataMode = 'live' | 'fixture';
 type LiveFilter = 'all' | 'noaa20' | 'noaa21' | 'day' | 'night' | 'persistent' | 'mapped_industry';
+type LandCoverFilter = 'all' | 'cropland' | 'tree_cover' | 'built_up' | 'grassland' | 'mixed';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -33,6 +35,11 @@ export function Dashboard() {
   const [industrialFeatures, setIndustrialFeatures] = useState<OSMFeatureCollection | null>(null);
   const [industrialLayerVisible, setIndustrialLayerVisible] = useState<boolean>(true);
   const [isSyncingOSM, setIsSyncingOSM] = useState<boolean>(false);
+
+  // Phase 5 Land-Cover Context State
+  const [landCoverMap, setLandCoverMap] = useState<Record<string, LandCoverProfileResponse>>({});
+  const [isSyncingLandCover, setIsSyncingLandCover] = useState<boolean>(false);
+  const [landCoverFilter, setLandCoverFilter] = useState<LandCoverFilter>('all');
 
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -98,38 +105,45 @@ export function Dashboard() {
 
               const ids = mapped.map((h) => h.id).slice(0, 1500);
 
-              // Phase 3: Fetch Batch Persistence Profiles (500 chunking)
-              try {
-                if (ids.length > 0) {
-                  const batchRes = await apiService.getBatchPersistence(ids);
-                  if (isMounted && batchRes && batchRes.profiles) {
-                    setPersistenceMap(batchRes.profiles);
-                  }
-                }
-              } catch (batchErr) {
-                console.warn("[Phase 3 Batch Persistence] Warning:", batchErr);
-              }
+              // Concurrently fetch intelligence layers with strict state isolation
+              if (ids.length > 0) {
+                await Promise.allSettled([
+                  // Phase 3: Batch Persistence Profiles (500 chunking)
+                  apiService.getBatchPersistence(ids)
+                    .then((batchRes) => {
+                      if (isMounted && batchRes?.profiles) {
+                        setPersistenceMap(batchRes.profiles);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 3 Batch Persistence] Warning:", err)),
 
-              // Phase 4: Fetch Batch Industrial Context Profiles (500 chunking)
-              try {
-                if (ids.length > 0) {
-                  const indRes = await apiService.getBatchIndustrialContext(ids);
-                  if (isMounted && indRes && indRes.profiles) {
-                    setIndustrialContextMap(indRes.profiles);
-                  }
-                }
-              } catch (indErr) {
-                console.warn("[Phase 4 Batch Industrial Context] Warning:", indErr);
-              }
+                  // Phase 4: Batch Industrial Context Profiles (500 chunking)
+                  apiService.getBatchIndustrialContext(ids)
+                    .then((indRes) => {
+                      if (isMounted && indRes?.profiles) {
+                        setIndustrialContextMap(indRes.profiles);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 4 Batch Industrial Context] Warning:", err)),
 
-              // Fetch Stored GeoJSON Industrial Features for map layer
-              try {
-                const featRes = await apiService.getOSMIndustrialFeatures({ limit: 1000 });
-                if (isMounted && featRes) {
-                  setIndustrialFeatures(featRes);
-                }
-              } catch (featErr) {
-                console.warn("[Phase 4 OSM Features] Warning:", featErr);
+                  // Phase 4: Stored GeoJSON Industrial Features for map layer
+                  apiService.getOSMIndustrialFeatures({ limit: 1000 })
+                    .then((featRes) => {
+                      if (isMounted && featRes) {
+                        setIndustrialFeatures(featRes);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 4 OSM Features] Warning:", err)),
+
+                  // Phase 5: Batch Land-Cover Profiles (500 chunking)
+                  apiService.getBatchLandCover(ids)
+                    .then((lcRes) => {
+                      if (isMounted && lcRes?.profiles) {
+                        setLandCoverMap(lcRes.profiles);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 5 Batch Land Cover] Warning:", err)),
+                ]);
               }
             }
           } catch (postgisErr) {
@@ -232,6 +246,31 @@ export function Dashboard() {
     }
   };
 
+  const handleLandCoverSync = async () => {
+    if (isSyncingLandCover || hotspots.length === 0) return;
+    setIsSyncingLandCover(true);
+    try {
+      const ids = hotspots.map((h) => h.id).slice(0, 1500);
+      await apiService.syncLandCover({
+        observation_ids: ids,
+        limit: 1500,
+        force_recompute: false,
+      });
+
+      // Refresh land-cover profiles
+      if (ids.length > 0) {
+        const lcRes = await apiService.getBatchLandCover(ids);
+        if (lcRes && lcRes.profiles) {
+          setLandCoverMap(lcRes.profiles);
+        }
+      }
+    } catch (err) {
+      console.error("Land-cover sync failed:", err);
+    } finally {
+      setIsSyncingLandCover(false);
+    }
+  };
+
   const handleHotspotClick = async (hotspot: ThermalObservation) => {
     setSelectedHotspot(hotspot);
     setAnalysis(null);
@@ -259,6 +298,18 @@ export function Dashboard() {
         console.warn("Failed to fetch industrial context profile on click:", err);
       }
     }
+
+    // Fetch land-cover profile on demand if absent
+    if (hotspot.id && !landCoverMap[hotspot.id]) {
+      try {
+        const lcProf = await apiService.getObservationLandCover(hotspot.id);
+        if (lcProf) {
+          setLandCoverMap(prev => ({ ...prev, [hotspot.id]: lcProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch land cover profile on click:", err);
+      }
+    }
   };
 
   const handleCloseDrawer = () => {
@@ -266,17 +317,32 @@ export function Dashboard() {
     setAnalysis(null);
   };
 
-  // Filtered hotspots
+  // Filtered hotspots with composed filters
   const filteredHotspots = hotspots.filter((h) => {
     if (dataMode === 'live') {
-      if (liveFilter === 'noaa20') return (h.source || '').includes('NOAA20') || h.satellite === 'N20';
-      if (liveFilter === 'noaa21') return (h.source || '').includes('NOAA21') || h.satellite === 'N21';
-      if (liveFilter === 'day') return h.daynight === 'D';
-      if (liveFilter === 'night') return h.daynight === 'N';
-      if (liveFilter === 'persistent') return persistenceMap[h.id]?.persistence_class === 'PERSISTENT';
-      if (liveFilter === 'mapped_industry') {
+      let matchesBase = true;
+      if (liveFilter === 'noaa20') matchesBase = (h.source || '').includes('NOAA20') || h.satellite === 'N20';
+      else if (liveFilter === 'noaa21') matchesBase = (h.source || '').includes('NOAA21') || h.satellite === 'N21';
+      else if (liveFilter === 'day') matchesBase = h.daynight === 'D';
+      else if (liveFilter === 'night') matchesBase = h.daynight === 'N';
+      else if (liveFilter === 'persistent') matchesBase = persistenceMap[h.id]?.persistence_class === 'PERSISTENT';
+      else if (liveFilter === 'mapped_industry') {
         const ctx = industrialContextMap[h.id]?.context_class;
-        return ctx === 'STRONG' || ctx === 'MODERATE' || ctx === 'WEAK';
+        matchesBase = ctx === 'STRONG' || ctx === 'MODERATE' || ctx === 'WEAK';
+      }
+      if (!matchesBase) return false;
+
+      // Phase 5 Land-Cover Filter
+      if (landCoverFilter === 'cropland') {
+        return landCoverMap[h.id]?.context_class === 'CROPLAND_DOMINANT';
+      } else if (landCoverFilter === 'tree_cover') {
+        return landCoverMap[h.id]?.context_class === 'TREE_COVER_DOMINANT';
+      } else if (landCoverFilter === 'built_up') {
+        return landCoverMap[h.id]?.context_class === 'BUILT_UP_DOMINANT';
+      } else if (landCoverFilter === 'grassland') {
+        return landCoverMap[h.id]?.context_class === 'GRASSLAND_DOMINANT';
+      } else if (landCoverFilter === 'mixed') {
+        return landCoverMap[h.id]?.context_class === 'MIXED';
       }
       return true;
     } else {
@@ -293,6 +359,10 @@ export function Dashboard() {
   const mappedIndustryCount = hotspots.filter(h => {
     const ctx = industrialContextMap[h.id]?.context_class;
     return ctx === 'STRONG' || ctx === 'MODERATE' || ctx === 'WEAK';
+  }).length;
+  const landCoverEvaluatedCount = hotspots.filter(h => {
+    const prof = landCoverMap[h.id];
+    return prof && prof.coverage_status !== 'UNAVAILABLE';
   }).length;
 
   return (
@@ -361,6 +431,17 @@ export function Dashboard() {
             <span>{isSyncingOSM ? 'Syncing OSM...' : 'Sync OSM'}</span>
           </button>
 
+          {/* Sync Land Cover Button */}
+          <button
+            onClick={handleLandCoverSync}
+            disabled={isSyncingLandCover || loading}
+            className="flex items-center gap-1.5 text-xs bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Precompute / sync ESA WorldCover baseline land-cover profiles"
+          >
+            <Trees size={14} className={isSyncingLandCover ? 'animate-spin text-emerald-300' : 'text-emerald-400'} />
+            <span>{isSyncingLandCover ? 'Syncing Land Cover...' : 'Sync Land Cover'}</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
@@ -386,6 +467,7 @@ export function Dashboard() {
               noaa21={noaa21Count}
               industrial={mappedIndustryCount}
               persistent={persistentCount}
+              landCoverEvaluated={landCoverEvaluatedCount}
               highRisk={0}
             />
           </div>
@@ -496,6 +578,35 @@ export function Dashboard() {
               </label>
             </div>
 
+            {/* Phase 5 Land-Cover Filter */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                <Trees size={12} className="text-emerald-600" /> Land-Cover Filter (Phase 5)
+              </span>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                {[
+                  { id: 'all', label: 'All Covers' },
+                  { id: 'cropland', label: 'Cropland' },
+                  { id: 'tree_cover', label: 'Tree Cover' },
+                  { id: 'built_up', label: 'Built-up' },
+                  { id: 'grassland', label: 'Grassland' },
+                  { id: 'mixed', label: 'Mixed' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setLandCoverFilter(opt.id as LandCoverFilter)}
+                    className={`py-1 px-1.5 rounded text-left font-medium transition-all ${
+                      landCoverFilter === opt.id
+                        ? 'bg-emerald-700 text-white font-bold shadow-xs'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Day Range Selector */}
             <div className="pt-2.5 border-t border-gray-100">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -537,6 +648,7 @@ export function Dashboard() {
           analysis={analysis} 
           persistenceProfile={selectedHotspot ? persistenceMap[selectedHotspot.id] : null}
           industrialContextProfile={selectedHotspot ? industrialContextMap[selectedHotspot.id] : null}
+          landCoverProfile={selectedHotspot ? landCoverMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
         />
