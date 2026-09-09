@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from geoalchemy2 import Geometry
-from sqlalchemy import JSON, DateTime, String, func
+from sqlalchemy import JSON, BigInteger, DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -22,7 +22,7 @@ class OSMIndustrialFeatureModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     osm_uid: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     osm_type: Mapped[str] = mapped_column(String(16), nullable=False)  # node, way, relation
-    osm_id: Mapped[int] = mapped_column(nullable=False)
+    osm_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     operator: Mapped[str | None] = mapped_column(String(255), nullable=True)

@@ -48,6 +48,16 @@ class IndustrialContextService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
+    async def analyze_batch(
+        self, observation_ids: list[str], radius_m: float = DEFAULT_INDUSTRIAL_RADIUS_M
+    ) -> list[IndustrialContextProfileDTO]:
+        """Analyze a list of observation IDs efficiently."""
+        profiles = []
+        for obs_id in observation_ids:
+            p = await self.get_or_compute_profile(obs_id, radius_m)
+            profiles.append(p)
+        return profiles
+
     async def check_envelope_coverage(
         self, lat: float, lon: float, radius_m: float = DEFAULT_INDUSTRIAL_RADIUS_M
     ) -> tuple[CoverageStatus, datetime | None]:
@@ -61,7 +71,14 @@ class IndustrialContextService:
         now_utc = datetime.now(UTC)
 
         stmt = (
-            select(OSMContextCoverageModel)
+            select(
+                OSMContextCoverageModel.completed_at,
+                OSMContextCoverageModel.requested_at,
+                func.ST_XMin(OSMContextCoverageModel.bbox_geom).label("west"),
+                func.ST_YMin(OSMContextCoverageModel.bbox_geom).label("south"),
+                func.ST_XMax(OSMContextCoverageModel.bbox_geom).label("east"),
+                func.ST_YMax(OSMContextCoverageModel.bbox_geom).label("north"),
+            )
             .where(
                 OSMContextCoverageModel.status == "COMPLETE",
                 OSMContextCoverageModel.expires_at > now_utc,
@@ -69,23 +86,17 @@ class IndustrialContextService:
             .order_by(OSMContextCoverageModel.completed_at.desc())
         )
         result = await self.db.execute(stmt)
-        coverages = result.scalars().all()
+        rows = result.fetchall()
 
-        for cov in coverages:
-            # Check numeric bounding box containment (west <= req_west, east >= req_east, etc.)
-            # Query PostGIS bbox geometry bounds via ST_XMin, ST_YMin, etc.
-            bbox_stmt = select(
-                func.ST_XMin(cov.bbox_geom),
-                func.ST_YMin(cov.bbox_geom),
-                func.ST_XMax(cov.bbox_geom),
-                func.ST_YMax(cov.bbox_geom),
-            )
-            bbox_res = await self.db.execute(bbox_stmt)
-            row = bbox_res.first()
-            if row:
-                c_west, c_south, c_east, c_north = row[0], row[1], row[2], row[3]
-                if c_west <= req_west and c_east >= req_east and c_south <= req_south and c_north >= req_north:
-                    return "ADEQUATE", cov.completed_at or cov.requested_at
+        # 1. Full envelope containment -> ADEQUATE
+        for row in rows:
+            if row.west <= req_west and row.east >= req_east and row.south <= req_south and row.north >= req_north:
+                return "ADEQUATE", row.completed_at or row.requested_at
+
+        # 2. Observation point inside coverage -> PARTIAL
+        for row in rows:
+            if row.west <= lon <= row.east and row.south <= lat <= row.north:
+                return "PARTIAL", row.completed_at or row.requested_at
 
         return "MISSING", None
 
@@ -141,7 +152,13 @@ class IndustrialContextService:
                 osm_uid = f"{elem_type}/{elem_id}"
                 tags = elem.get("tags", {})
                 category, thermal_relevance = classify_osm_taxonomy(tags)
-                wkt_str, geom_quality, _ = normalize_osm_geometry(elem)
+                try:
+                    wkt_str, geom_quality, _ = normalize_osm_geometry(elem)
+                    if not wkt_str:
+                        continue
+                except Exception as geom_err:
+                    logger.debug(f"Failed to normalize geometry for {osm_uid}: {geom_err}")
+                    continue
 
                 # Upsert into osm_industrial_features
                 existing_feat_stmt = select(OSMIndustrialFeatureModel).where(
@@ -201,8 +218,13 @@ class IndustrialContextService:
 
         except Exception as ex:
             logger.error(f"OSM BBox sync failed for query_hash {query_hash}: {ex}")
-            coverage_rec.status = "FAILED"
-            await self.db.commit()
+            await self.db.rollback()
+            try:
+                coverage_rec.status = "FAILED"
+                self.db.add(coverage_rec)
+                await self.db.commit()
+            except Exception:
+                pass
             raise
 
     async def _invalidate_unavailable_profiles_in_bbox(
@@ -344,7 +366,7 @@ class IndustrialContextService:
         now_utc = datetime.now(UTC)
         coverage_status, osm_snapshot = await self.check_envelope_coverage(obs.latitude, obs.longitude, radius_m)
 
-        if coverage_status != "ADEQUATE":
+        if coverage_status not in ("ADEQUATE", "PARTIAL"):
             return IndustrialContextProfileDTO(
                 observation_id=obs.observation_id,
                 radius_m=radius_m,
@@ -382,8 +404,12 @@ class IndustrialContextService:
                 observation_id=obs.observation_id,
                 radius_m=radius_m,
                 context_class="NONE",
-                coverage_status="ADEQUATE",
-                evidence_summary={"reason": "Full 5km OSM coverage present, 0 industrial features found"},
+                coverage_status=coverage_status,
+                evidence_summary={
+                    "reason": "Full 5km OSM coverage present, 0 industrial features found"
+                    if coverage_status == "ADEQUATE"
+                    else "Partial spatial OSM coverage present, 0 industrial features found"
+                },
                 osm_snapshot_at=osm_snapshot,
                 calculated_at=now_utc,
             )
@@ -430,7 +456,7 @@ class IndustrialContextService:
             observation_id=obs.observation_id,
             radius_m=radius_m,
             context_class=context_class,
-            coverage_status="ADEQUATE",
+            coverage_status=coverage_status,
             nearest_industrial_distance_m=nearest_dist,
             nearest_feature=nearest_dto,
             nearest_flare_distance_m=min_flare,
