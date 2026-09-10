@@ -4,7 +4,7 @@
 ### AI-Enabled Geospatial Industrial Thermal Intelligence & Monitoring Platform
 **Smart India Hackathon 2026 • Problem Statement: SIH26162**
 
-[![Status: Phase 8 Verified](https://img.shields.io/badge/Status-Phase%208%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
+[![Status: Phase 9 Verified](https://img.shields.io/badge/Status-Phase%209%20Verified-00c853.svg?style=for-the-badge&logo=checkmarx)](https://github.com/Sharan-Sanadi/agnidrishti-ai)
 [![SIH Problem Statement](https://img.shields.io/badge/SIH-26162-ff6d00.svg?style=for-the-badge&logo=target)](https://www.sih.gov.in/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Next.js](https://img.shields.io/badge/Next.js-16%20Turbopack-000000.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
@@ -15,13 +15,13 @@
 
 **Agnidrishti** is an enterprise-grade geospatial thermal intelligence system designed to solve the critical national challenge of distinguishing legitimate industrial thermal operations (smelters, flare stacks, cement kilns, refinery units) from catastrophic industrial fires, unpermitted industrial activities, and agricultural burning.
 
-By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection), real Copernicus Sentinel-2 Level-2A BOA optical/NIR/SWIR spectral context retrieval with SCL cloud-masking, strictly prior scene discovery ($\le T_0$), and zero-weight multi-modal geospatial feature fusion (`fusion_v1`) into unified explainable machine-learning-ready intelligence vectors.
+By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA-21 NRT) with an indexed, idempotent PostGIS spatial historical store, Agnidrishti computes PostGIS-native spatiotemporal recurrence metrics (`ST_DWithin` geography matching within 750m), strict future-leakage-safe temporal persistence, server-side OpenStreetMap (Overpass API) industrial context normalization, metric spatial proximity analysis (`ST_Distance`, `ST_Covers`), 5km coverage-gated industrial evidence classification (`STRONG`, `MODERATE`, `WEAK`, `NONE`, `UNAVAILABLE`), real ESA WorldCover 10 m 2021 v200 multi-scale circular land-cover analysis (250m, 500m, 1000m via Azimuthal Equidistant projection), real Copernicus Sentinel-2 Level-2A BOA optical/NIR/SWIR spectral context retrieval with SCL cloud-masking, strictly prior scene discovery ($\le T_0$), zero-weight multi-modal geospatial feature fusion (`fusion_v1`), intelligent supervised context classification (`HistGradientBoostingClassifier`, Macro F1: 0.9807), and exact additive TreeSHAP explainability into unified, audit-ready intelligence vectors.
 
 </div>
 
 ---
 
-## ⚡ Executive Summary — Phase 8 Verified
+## ⚡ Executive Summary — Phase 9 Verified
 
 | Milestone | Capability | Verification Status |
 | :--- | :--- | :---: |
@@ -34,6 +34,8 @@ By unifying near-real-time satellite thermal anomaly feeds (VIIRS NOAA-20 & NOAA
 | **Phase 6 — Sentinel-2 Satellite Context** | Real Copernicus Data Space Ecosystem (CDSE) Sentinel-2 Level-2A BOA reflectance, STAC v1 discovery, strict $\le T_0$ zero-future-leakage prior selection (30-day lookback), SCL 20m cloud masking & dataMask validation, circular AEQD metric analysis (100m, 250m, 500m), robust spectral features (NDVI, NDMI, NBR, B04/B08/B11/B12 medians/percentiles), PostGIS persistence (`thermal_sentinel_context_profiles`), True Color & SWIR Context PNG previews | 🟢 **Verified** |
 | **Phase 7 — Feature Fusion** | Multi-modal fusion of temporal recurrence, industrial proximity, land-cover dominance, and spectral context into canonical explainable intelligence, versioned feature registry (59 features, 57 model-eligible), deterministic SHA-256 source fingerprinting, strict temporal leakage audits ($\le T_0$), PostGIS persistence (`thermal_feature_fusion_profiles`), CSV matrix export, and telemetry drawer integration | 🟢 **Verified** |
 | **Phase 8 — Intelligent Classification** | Thermal Context Archetype classification (5 classes + INSUFFICIENT_EVIDENCE) via conservative weak supervision labeling (`WeakLabelerV1`), spatial-grouped train/val/test splitting (zero group leakage), `HistGradientBoostingClassifier` (Macro F1: 0.9807, Balanced Acc: 0.9944), cryptographic model registry (SHA-256 verification), 500-chunked bulk PostGIS inference, evidence gating (< 40% coverage → withheld), model card documentation, and full dashboard integration (Sync Classify, filters, drawer, stats) | 🟢 **Verified** |
+| **Phase 9 — Model Explainability** | Exact TreeSHAP local feature attribution (`TreeExplainer`) on frozen classifier, analytical linear fallback, mathematical additivity verification ($\left\|\sum \phi_i + \phi_0 - f(x)\right\| < 10^{-2}$), human-interpretable feature translation across 5 domain groups, offline held-out test split permutation importance generator (`phase9_global_importance.json`), zero-retraining & zero-network guarantees, PostGIS persistence (`thermal_classification_explanations`), and Next.js SaaS explainability suite (Global SHAP modal, drawer waterfall breakdown, multi-domain filtering) | 🟢 **Verified** |
+
 
 ---
 
@@ -695,6 +697,74 @@ uv run python scripts/export_fusion_matrix.py --output ../../data/exports/fusion
 
 ---
 
+## 🧠 Phase 8: Intelligent Classification Engine
+
+Agnidrishti's Phase 8 deploys supervised machine learning to classify satellite thermal anomalies into 5 distinct physical context archetypes, rejecting naive heuristics in favor of validated scikit-learn models.
+
+- **Candidate Model**: `HistGradientBoostingClassifier` (`agnidrishti_context_classifier_v1`)
+- **Evaluation Metrics**: **Macro F1: 0.9807**, Weighted F1: 0.9849, Balanced Accuracy: 0.9944
+- **Spatial Leakage Audited**: `GroupShuffleSplit` on ~5 km spatial tiles ensures zero spatial overlap between training, validation, and held-out test splits.
+- **Evidence Gating**: Observations with $< 40\%$ feature coverage are withheld with `INSUFFICIENT_EVIDENCE` status.
+- **Class Archetypes**: `INDUSTRIAL_THERMAL_CONTEXT`, `AGRICULTURAL_THERMAL_CONTEXT`, `NATURAL_VEGETATION_THERMAL_CONTEXT`, `BUILT_NON_INDUSTRIAL_CONTEXT`, `MIXED_THERMAL_CONTEXT`.
+- **PostGIS Storage**: `thermal_classification_predictions` table stores class probabilities, predicted class, and model version.
+- **Production Endpoints**:
+  * `GET /api/v1/classification/model`: Model metadata, classes, SHA-256 artifact hash.
+  * `POST /api/v1/classification/evaluate`: On-demand evaluation from feature vector.
+  * `POST /api/v1/classification/batch`: Multi-ID prediction lookup ($\le 500$ chunking).
+  * `POST /api/v1/classification/sync`: Idempotent bulk inference and persistence.
+
+---
+
+## 🔍 Phase 9: Model Explainability Engine (SHAP)
+
+Phase 9 delivers end-to-end model explainability (`agnidrishti_explainer_v1`), making black-box ML decisions completely transparent to emergency management operators and environmental regulators.
+
+```
+                      FROZEN CLASSIFIER (Phase 8)
+                                   │
+                 ┌─────────────────┴─────────────────┐
+                 ▼                                   ▼
+        LOCAL EXPLANATIONS                  GLOBAL IMPORTANCE
+         • Exact TreeSHAP                    • Permutation Importance
+         • Linear Fallback                   • 10 Repeats on Held-Out Test
+         • Additivity Verified               • Macro F1 Scoring Drop
+         • Direction & Relative Strength     • Domain Group Aggregation
+                 │                                   │
+                 ▼                                   ▼
+      POSTGIS PERSISTENCE                   STATIC ARTIFACT
+  (thermal_classification_explanations)  (phase9_global_importance.json)
+                 │                                   │
+                 └─────────────────┬─────────────────┘
+                                   │
+                                   ▼
+                    NEXT.JS 16 ENTERPRISE UI
+          • Real-time Explained Observations Stats Counter
+          • Top Bar Actions: Sync SHAP & Global SHAP Modal
+          • Interactive Analysis Drawer: Waterfall SHAP Breakdown
+          • Mathematical Additivity Validation Badge (|Δ| < 0.01)
+          • Explainability Multi-Filter (Available / TreeSHAP / Insufficient)
+```
+
+### 1. Mathematical Additivity Contract
+For every local TreeSHAP attribution, the sum of all individual feature Shapley values $\phi_i$ plus the expected base value $\phi_0$ must equal the model's raw margin score $f(x)$ within numerical precision:
+$$\left| \sum_{i=1}^{M} \phi_i + \phi_0 - f(x) \right| < 10^{-2}$$
+
+### 2. Human-Interpretable Translation & Domain Groupings
+57 technical feature names are mapped into plain English labels, units, and 5 canonical domain groups:
+- **`LAND_COVER`** (76.3% global importance): ESA WorldCover fractions and dominant classes.
+- **`INDUSTRIAL`** (22.2% global importance): OSM proximity, density, and industrial infrastructure flags.
+- **`THERMAL`** (0.8% global importance): VIIRS sensor geometry and brightness temperatures.
+- **`TEMPORAL`** (0.6% global importance): Recurrence frequency, active days, and span.
+- **`SENTINEL`**: Multispectral vegetation, moisture, and burn indices.
+
+### 3. Production Explainability Endpoints
+- `GET /api/v1/observations/{id}/explanation`: Retrieve single observation TreeSHAP local feature attribution.
+- `POST /api/v1/explanations/batch`: 500-chunked bulk local explanation retrieval.
+- `POST /api/v1/explanations/sync`: Idempotent bulk compute and PostGIS persistence (0.61s for 1,538 observations).
+- `GET /api/v1/explanations/global`: Global permutation feature importance artifact.
+
+---
+
 ## 🧪 Testing & Validation Suite
 
 Agnidrishti incorporates rigorous automated testing covering unit normalization, API contracts, and real PostGIS integration.
@@ -703,8 +773,8 @@ Agnidrishti incorporates rigorous automated testing covering unit normalization,
 ```bash
 cd services/api
 
-# Run comprehensive test suite (150 tests passing)
-uv run pytest -v
+# Run comprehensive test suite (189 tests passing, 0 failures)
+uv run pytest tests/ -v
 
 # Run code linter
 uv run ruff check .
@@ -734,9 +804,9 @@ pnpm build:web
 [Phase 5] Land-Cover Intelligence (WorldCover) ─► 🟢 VERIFIED
 [Phase 6] Sentinel-2 Satellite Context (CDSE) ──► 🟢 VERIFIED
 [Phase 7] Geospatial Feature Fusion ─────────────► 🟢 VERIFIED
-[Phase 8] ML Industrial Fire Classification ─────► ⏳ NEXT UP
-[Phase 9] Explainability & Attribution ──────────► ⬜ PLANNED
-[Phase 10] AgniRisk Anomaly Event Scoring ───────► ⬜ PLANNED
+[Phase 8] Intelligent Classification Engine ───► 🟢 VERIFIED
+[Phase 9] Model Explainability Engine (SHAP) ──► 🟢 VERIFIED
+[Phase 10] AgniRisk Anomaly Event Scoring ───────► ⏳ NEXT UP
 [Phase 11] Command Center UI & Mapbox/Leaflet ───► ⬜ PLANNED
 [Phase 12] Alerting & Audit Logging ─────────────► ⬜ PLANNED
 [Phase 13] Historical Evaluation Benchmark ──────► ⬜ PLANNED

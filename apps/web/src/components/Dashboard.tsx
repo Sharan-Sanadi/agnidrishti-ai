@@ -13,11 +13,28 @@ import {
   SentinelContextProfileResponse,
   FusionProfileResponse,
   ClassificationPredictionResponse,
+  LocalExplanationResponse,
+  GlobalExplanationResponse,
   OSMFeatureCollection,
 } from '../services/api';
 import { StatsCards } from './StatsCards';
 import { AnalysisDrawer } from './AnalysisDrawer';
-import { Activity, RefreshCw, AlertCircle, Database, Factory, Eye, EyeOff, Trees, Satellite, Layers, BrainCircuit } from 'lucide-react';
+import { GlobalExplainabilityModal } from './GlobalExplainabilityModal';
+import {
+  Activity,
+  RefreshCw,
+  AlertCircle,
+  Database,
+  Factory,
+  Eye,
+  EyeOff,
+  Trees,
+  Satellite,
+  Layers,
+  BrainCircuit,
+  Sparkles,
+  BarChart3,
+} from 'lucide-react';
 
 const Map = dynamic(() => import('./Map'), { ssr: false });
 
@@ -27,6 +44,7 @@ type LandCoverFilter = 'all' | 'cropland' | 'tree_cover' | 'built_up' | 'grassla
 type SentinelFilter = 'all' | 'evaluated' | 'clear' | 'cloud_limited' | 'recent';
 type FusionFilter = 'all' | 'complete' | 'partial' | 'evaluated';
 type ClassificationFilter = 'all' | 'industrial' | 'agricultural' | 'natural' | 'built_non_industrial' | 'mixed' | 'insufficient';
+type ExplanationFilter = 'all' | 'available' | 'insufficient' | 'tree_shap';
 type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
@@ -61,6 +79,15 @@ export function Dashboard() {
   const [classificationMap, setClassificationMap] = useState<Record<string, ClassificationPredictionResponse>>({});
   const [isSyncingClassification, setIsSyncingClassification] = useState<boolean>(false);
   const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
+
+  // Phase 9 Model Explainability State
+  const [explanationMap, setExplanationMap] = useState<Record<string, LocalExplanationResponse>>({});
+  const [isSyncingExplanation, setIsSyncingExplanation] = useState<boolean>(false);
+  const [explanationFilter, setExplanationFilter] = useState<ExplanationFilter>('all');
+  const [isGlobalModalOpen, setIsGlobalModalOpen] = useState<boolean>(false);
+  const [globalExplanationData, setGlobalExplanationData] = useState<GlobalExplanationResponse | null>(null);
+  const [loadingGlobalExplanation, setLoadingGlobalExplanation] = useState<boolean>(false);
+
 
   const [loading, setLoading] = useState(true);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
@@ -191,6 +218,15 @@ export function Dashboard() {
                       }
                     })
                     .catch((err) => console.warn("[Phase 8 Batch Classification] Warning:", err)),
+
+                  // Phase 9: Batch Explainability Profiles (500 chunking)
+                  apiService.getBatchExplanations(ids)
+                    .then((expRes) => {
+                      if (isMounted && expRes?.explanations) {
+                        setExplanationMap(expRes.explanations);
+                      }
+                    })
+                    .catch((err) => console.warn("[Phase 9 Batch Explainability] Warning:", err)),
                 ]);
               }
             }
@@ -394,6 +430,18 @@ export function Dashboard() {
         console.warn("Failed to fetch classification prediction on click:", err);
       }
     }
+
+    // Fetch Phase 9 Explanation on demand if absent
+    if (hotspot.id && !explanationMap[hotspot.id]) {
+      try {
+        const expProf = await apiService.getObservationExplanation(hotspot.id);
+        if (expProf) {
+          setExplanationMap(prev => ({ ...prev, [hotspot.id]: expProf }));
+        }
+      } catch (err) {
+        console.warn("Failed to fetch explanation on click:", err);
+      }
+    }
   };
 
   const handleSyncSentinel = async (targetId?: string) => {
@@ -464,6 +512,60 @@ export function Dashboard() {
       console.error("Classification sync failed:", err);
     } finally {
       setIsSyncingClassification(false);
+    }
+  };
+
+  const handleSyncExplanation = async () => {
+    if (isSyncingExplanation || hotspots.length === 0) return;
+    setIsSyncingExplanation(true);
+    try {
+      const ids = hotspots.map((h) => h.id).slice(0, 1500);
+      await apiService.syncExplanations({
+        observation_ids: ids,
+        force_recompute: true,
+      });
+
+      // Refresh batch explanations via 500-chunked batch
+      if (ids.length > 0) {
+        const res = await apiService.getBatchExplanations(ids);
+        if (res && res.explanations) {
+          setExplanationMap(res.explanations);
+        }
+      }
+    } catch (err) {
+      console.error("Explanation sync failed:", err);
+    } finally {
+      setIsSyncingExplanation(false);
+    }
+  };
+
+  const handleSyncSingleExplanation = async (obsId: string) => {
+    try {
+      await apiService.syncExplanations({
+        observation_ids: [obsId],
+        force_recompute: true,
+      });
+      const single = await apiService.getObservationExplanation(obsId);
+      if (single) {
+        setExplanationMap(prev => ({ ...prev, [obsId]: single }));
+      }
+    } catch (err) {
+      console.error("Single observation explanation sync failed:", err);
+    }
+  };
+
+  const handleOpenGlobalModal = async () => {
+    setIsGlobalModalOpen(true);
+    if (!globalExplanationData) {
+      setLoadingGlobalExplanation(true);
+      try {
+        const data = await apiService.getGlobalExplanation();
+        setGlobalExplanationData(data);
+      } catch (err) {
+        console.error("Failed to load global explanation:", err);
+      } finally {
+        setLoadingGlobalExplanation(false);
+      }
     }
   };
 
@@ -547,6 +649,18 @@ export function Dashboard() {
         return classificationMap[h.id]?.predicted_class === 'MIXED_THERMAL_CONTEXT';
       }
 
+      // Phase 9 Model Explainability Filter
+      if (explanationFilter === 'available') {
+        const exp = explanationMap[h.id];
+        return exp?.explanation_status === 'AVAILABLE';
+      } else if (explanationFilter === 'insufficient') {
+        const exp = explanationMap[h.id];
+        return exp?.explanation_status === 'INSUFFICIENT_EVIDENCE';
+      } else if (explanationFilter === 'tree_shap') {
+        const exp = explanationMap[h.id];
+        return exp?.method?.toLowerCase().includes('tree') ?? false;
+      }
+
       return true;
     } else {
       if (fixtureFilter === 'industrial') return false;
@@ -585,6 +699,10 @@ export function Dashboard() {
   const classificationBuiltCount = Object.values(classificationMap).filter(p => p.predicted_class === 'BUILT_NON_INDUSTRIAL_CONTEXT').length;
   const classificationMixedCount = Object.values(classificationMap).filter(p => p.predicted_class === 'MIXED_THERMAL_CONTEXT').length;
   const classificationInsufficientCount = Object.values(classificationMap).filter(p => p.classification_status === 'INSUFFICIENT_EVIDENCE').length;
+  const explanationCount = Object.keys(explanationMap).length;
+  const explanationAvailableCount = Object.values(explanationMap).filter(e => e.explanation_status === 'AVAILABLE').length;
+  const explanationInsufficientCount = Object.values(explanationMap).filter(e => e.explanation_status === 'INSUFFICIENT_EVIDENCE').length;
+  const explanationTreeCount = Object.values(explanationMap).filter(e => e.method?.toLowerCase().includes('tree')).length;
 
   return (
     <div className="flex flex-col h-screen w-full bg-gray-100 overflow-hidden font-sans">
@@ -626,7 +744,7 @@ export function Dashboard() {
         </div>
 
         {/* Header Controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Industrial Layer Toggle */}
           <button
             onClick={() => setIndustrialLayerVisible(!industrialLayerVisible)}
@@ -696,6 +814,27 @@ export function Dashboard() {
             <span>{isSyncingClassification ? 'Classifying...' : 'Sync Classify'}</span>
           </button>
 
+          {/* Sync Explainability Button (Phase 9) */}
+          <button
+            onClick={handleSyncExplanation}
+            disabled={isSyncingExplanation || loading}
+            className="flex items-center gap-1.5 text-xs bg-amber-950/80 hover:bg-amber-900 border border-amber-700 text-amber-300 px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50"
+            title="Compute & persist Phase 9 TreeSHAP local feature attributions"
+          >
+            <Sparkles size={14} className={isSyncingExplanation ? 'animate-spin text-amber-300' : 'text-amber-400'} />
+            <span>{isSyncingExplanation ? 'Explaining...' : 'Sync SHAP'}</span>
+          </button>
+
+          {/* Global Explainability Insights Button */}
+          <button
+            onClick={handleOpenGlobalModal}
+            className="flex items-center gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 border border-amber-500/60 text-amber-300 px-3 py-1.5 rounded-lg font-bold transition-all shadow-xs"
+            title="View global permutation feature importance across model"
+          >
+            <BarChart3 size={14} className="text-amber-400" />
+            <span>Global SHAP</span>
+          </button>
+
           {/* Refresh Button */}
           <button
             onClick={handleManualRefresh}
@@ -728,6 +867,7 @@ export function Dashboard() {
               fusionPartial={fusionPartialCount}
               classificationCount={classificationCount}
               classificationIndustrial={classificationIndustrialCount}
+              explanationCount={explanationCount}
               highRisk={0}
             />
           </div>
@@ -750,7 +890,7 @@ export function Dashboard() {
         )}
 
         {/* Filters Panel */}
-        <div className="absolute left-4 top-36 z-10 bg-white/95 backdrop-blur-sm p-3.5 rounded-xl shadow-xl pointer-events-auto border border-gray-200/80 w-60 text-xs">
+        <div className="absolute left-4 top-36 z-10 bg-white/95 backdrop-blur-sm p-3.5 pb-3 rounded-xl shadow-xl pointer-events-auto border border-gray-200/80 w-60 text-xs max-h-[calc(100vh-140px)] overflow-y-auto overflow-x-hidden pr-1">
           <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-gray-100">
             <h3 className="font-bold text-gray-700 uppercase tracking-wider">
               Satellite & Context Filters
@@ -969,6 +1109,38 @@ export function Dashboard() {
               </div>
             </div>
 
+            {/* Phase 9 Model Explainability Filter */}
+            <div className="pt-2.5 border-t border-gray-100">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles size={12} className="text-amber-600" /> Explainability (Phase 9)
+                </span>
+                <span className="text-[9px] font-semibold text-amber-700">
+                  {explanationCount} Explained
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[11px]">
+                {[
+                  { id: 'all', label: 'All Explanations' },
+                  { id: 'available', label: `Available (${explanationAvailableCount})` },
+                  { id: 'tree_shap', label: `TreeSHAP (${explanationTreeCount})` },
+                  { id: 'insufficient', label: `Insufficient (${explanationInsufficientCount})` },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setExplanationFilter(opt.id as ExplanationFilter)}
+                    className={`py-1 px-1.5 rounded text-left font-medium transition-all ${
+                      explanationFilter === opt.id
+                        ? 'bg-amber-700 text-white font-bold shadow-xs'
+                        : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Day Range Selector */}
             <div className="pt-2.5 border-t border-gray-100">
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">
@@ -1014,9 +1186,19 @@ export function Dashboard() {
           sentinelProfile={selectedHotspot ? sentinelContextMap[selectedHotspot.id] : null}
           fusionProfile={selectedHotspot ? fusionMap[selectedHotspot.id] : null}
           classificationProfile={selectedHotspot ? classificationMap[selectedHotspot.id] : null}
+          explanationProfile={selectedHotspot ? explanationMap[selectedHotspot.id] : null}
           loading={loadingAnalysis}
           onClose={handleCloseDrawer}
           onSyncSentinel={handleSyncSentinel}
+          onSyncExplanation={handleSyncSingleExplanation}
+        />
+
+        {/* Global Explainability Modal */}
+        <GlobalExplainabilityModal
+          isOpen={isGlobalModalOpen}
+          onClose={() => setIsGlobalModalOpen(false)}
+          data={globalExplanationData}
+          loading={loadingGlobalExplanation}
         />
       </div>
     </div>

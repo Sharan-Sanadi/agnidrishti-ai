@@ -1,0 +1,447 @@
+{
+  "model_version": "agnidrishti_context_classifier_v1",
+  "model_artifact_hash": "28040c6bc54a86fae48d6606bbfb3fa32657ea04cd402c93e9bd438d2add49ba",
+  "explanation_version": "agnidrishti_explainer_v1",
+  "validation_status": "WEAK_SUPERVISION_PROTOTYPE",
+  "scoring_metric": "macro_f1",
+  "dataset_fingerprint": "98783d8f325f9361c892670a1675044500439a73e7215a6f98860ac227fe6957",
+  "evaluation_split": "test",
+  "evaluation_samples": 131,
+  "random_seed": 42,
+  "n_repeats": 10,
+  "duration_seconds": 8.83,
+  "computed_at": "2026-09-09T17:44:40.263346+00:00",
+  "top_features": [
+    {
+      "feature_name": "landcover_dominant_fraction_500m",
+      "display_name": "Dominant Land Cover Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.27564,
+      "importance_std": 0.03533,
+      "rank": 1
+    },
+    {
+      "feature_name": "landcover_cropland_fraction_500m",
+      "display_name": "Cropland Coverage Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.22624,
+      "importance_std": 0.01872,
+      "rank": 2
+    },
+    {
+      "feature_name": "landcover_builtup_fraction_500m",
+      "display_name": "Built-up Land Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.2229,
+      "importance_std": 0.02501,
+      "rank": 3
+    },
+    {
+      "feature_name": "industrial_feature_count_5km",
+      "display_name": "Industrial Features within 5km",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.2109,
+      "importance_std": 0.01759,
+      "rank": 4
+    },
+    {
+      "feature_name": "thermal_track",
+      "display_name": "Sensor Along-Track Pixel Dimension",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.00405,
+      "importance_std": 0.00496,
+      "rank": 5
+    },
+    {
+      "feature_name": "thermal_brightness_ti5",
+      "display_name": "VIIRS I-5 Thermal Brightness",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.00304,
+      "importance_std": 0.00464,
+      "rank": 6
+    },
+    {
+      "feature_name": "temporal_active_days_30d",
+      "display_name": "Active Hotspot Days (Last 30D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.00202,
+      "importance_std": 0.00405,
+      "rank": 7
+    },
+    {
+      "feature_name": "temporal_detection_count_30d",
+      "display_name": "Total Cluster Detections (30D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.00202,
+      "importance_std": 0.00405,
+      "rank": 8
+    },
+    {
+      "feature_name": "temporal_coverage_ratio_30d",
+      "display_name": "Temporal Coverage Ratio (30D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.00202,
+      "importance_std": 0.00405,
+      "rank": 9
+    },
+    {
+      "feature_name": "landcover_grass_fraction_500m",
+      "display_name": "Grassland Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.00202,
+      "importance_std": 0.00405,
+      "rank": 10
+    },
+    {
+      "feature_name": "industrial_nearest_distance_m",
+      "display_name": "Nearest Industrial Feature Distance",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.00101,
+      "importance_std": 0.00304,
+      "rank": 11
+    },
+    {
+      "feature_name": "thermal_scan",
+      "display_name": "Sensor Along-Scan Pixel Dimension",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.00101,
+      "importance_std": 0.00304,
+      "rank": 12
+    },
+    {
+      "feature_name": "thermal_instrument",
+      "display_name": "Observing Instrument",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 13
+    },
+    {
+      "feature_name": "thermal_satellite",
+      "display_name": "Observing Satellite Platform",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 14
+    },
+    {
+      "feature_name": "thermal_confidence",
+      "display_name": "Thermal Detection Confidence Tier",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 15
+    },
+    {
+      "feature_name": "temporal_persistence_index",
+      "display_name": "Temporal Persistence Index",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 16
+    },
+    {
+      "feature_name": "temporal_span_days_30d",
+      "display_name": "Temporal Observation Span (30D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 17
+    },
+    {
+      "feature_name": "temporal_active_weeks_30d",
+      "display_name": "Active Hotspot Weeks (Last 30D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 18
+    },
+    {
+      "feature_name": "temporal_persistence_class",
+      "display_name": "Persistence Archetype Class",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 19
+    },
+    {
+      "feature_name": "temporal_active_days_7d",
+      "display_name": "Active Hotspot Days (Last 7D)",
+      "feature_group": "TEMPORAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 20
+    },
+    {
+      "feature_name": "industrial_inside_area",
+      "display_name": "Inside Industrial Boundary",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 21
+    },
+    {
+      "feature_name": "industrial_nearest_category",
+      "display_name": "Nearest Industrial Category",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 22
+    },
+    {
+      "feature_name": "industrial_feature_count_500m",
+      "display_name": "Industrial Features within 500m",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 23
+    },
+    {
+      "feature_name": "industrial_coverage_status",
+      "display_name": "Industrial Coverage Evaluation",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 24
+    },
+    {
+      "feature_name": "industrial_feature_count_1km",
+      "display_name": "Industrial Features within 1km",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 25
+    },
+    {
+      "feature_name": "industrial_has_flare_nearby",
+      "display_name": "Proximity to Gas Flare",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 26
+    },
+    {
+      "feature_name": "industrial_has_refinery_nearby",
+      "display_name": "Proximity to Oil/Gas Refinery",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 27
+    },
+    {
+      "feature_name": "industrial_has_chimney_nearby",
+      "display_name": "Proximity to Industrial Chimney",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 28
+    },
+    {
+      "feature_name": "industrial_has_power_plant_nearby",
+      "display_name": "Proximity to Thermal Power Plant",
+      "feature_group": "INDUSTRIAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 29
+    },
+    {
+      "feature_name": "thermal_daynight",
+      "display_name": "Satellite Solar Cycle (Day/Night)",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 30
+    },
+    {
+      "feature_name": "thermal_frp",
+      "display_name": "Fire Radiative Power",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 31
+    },
+    {
+      "feature_name": "thermal_brightness_ti4",
+      "display_name": "VIIRS I-4 Thermal Brightness",
+      "feature_group": "THERMAL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 32
+    },
+    {
+      "feature_name": "landcover_tree_fraction_500m",
+      "display_name": "Tree Canopy Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 33
+    },
+    {
+      "feature_name": "landcover_coverage_status",
+      "display_name": "Land Cover Coverage Evaluation",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 34
+    },
+    {
+      "feature_name": "landcover_point_code",
+      "display_name": "WorldCover Point Pixel Code",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 35
+    },
+    {
+      "feature_name": "landcover_shrub_fraction_500m",
+      "display_name": "Shrubland Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 36
+    },
+    {
+      "feature_name": "landcover_bare_fraction_500m",
+      "display_name": "Bare Soil / Sand Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 37
+    },
+    {
+      "feature_name": "landcover_water_fraction_500m",
+      "display_name": "Water Body Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 38
+    },
+    {
+      "feature_name": "landcover_wetland_fraction_500m",
+      "display_name": "Herbaceous Wetland Fraction (500m)",
+      "feature_group": "LAND_COVER",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 39
+    },
+    {
+      "feature_name": "sentinel_quality_status",
+      "display_name": "Sentinel-2 Spectral Scene Quality",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 40
+    },
+    {
+      "feature_name": "sentinel_provider_status",
+      "display_name": "Sentinel-2 Provider Query Status",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 41
+    },
+    {
+      "feature_name": "sentinel_scene_age_days",
+      "display_name": "Sentinel-2 Prior Scene Age",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 42
+    },
+    {
+      "feature_name": "sentinel_valid_fraction_250m",
+      "display_name": "Sentinel-2 Clear Valid Pixels (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 43
+    },
+    {
+      "feature_name": "sentinel_cloud_fraction_250m",
+      "display_name": "Sentinel-2 Cloud Mask Fraction (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 44
+    },
+    {
+      "feature_name": "sentinel_b04_median_250m",
+      "display_name": "Sentinel-2 B04 Red Reflectance (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 45
+    },
+    {
+      "feature_name": "sentinel_b08_median_250m",
+      "display_name": "Sentinel-2 B08 NIR Reflectance (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 46
+    },
+    {
+      "feature_name": "sentinel_b11_median_250m",
+      "display_name": "Sentinel-2 B11 SWIR1 Reflectance (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 47
+    },
+    {
+      "feature_name": "sentinel_b12_median_250m",
+      "display_name": "Sentinel-2 B12 SWIR2 Reflectance (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 48
+    },
+    {
+      "feature_name": "sentinel_ndvi_median_250m",
+      "display_name": "Sentinel-2 NDVI Vegetation Index (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 49
+    },
+    {
+      "feature_name": "sentinel_ndmi_median_250m",
+      "display_name": "Sentinel-2 NDMI Moisture Index (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 50
+    },
+    {
+      "feature_name": "sentinel_nbr_median_250m",
+      "display_name": "Sentinel-2 NBR Normalized Burn Ratio (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 51
+    },
+    {
+      "feature_name": "sentinel_b11_p90_250m",
+      "display_name": "Sentinel-2 B11 90th Percentile (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 52
+    },
+    {
+      "feature_name": "sentinel_b12_p90_250m",
+      "display_name": "Sentinel-2 B12 90th Percentile (250m)",
+      "feature_group": "SENTINEL",
+      "importance_mean": 0.0,
+      "importance_std": 0.0,
+      "rank": 53
+    }
+  ],
+  "feature_groups": {
+    "THERMAL": 0.8,
+    "TEMPORAL": 0.6,
+    "INDUSTRIAL": 22.2,
+    "LAND_COVER": 76.3,
+    "SENTINEL": 0.0
+  }
+}

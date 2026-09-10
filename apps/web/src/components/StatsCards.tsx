@@ -1,4 +1,4 @@
-import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite, Layers, BrainCircuit } from 'lucide-react';
+import { Flame, AlertTriangle, Factory, ShieldAlert, Trees, Satellite, Layers, BrainCircuit, Sparkles } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
@@ -11,6 +11,7 @@ interface StatsCardsProps {
   fusionPartial?: number;
   classificationCount?: number;
   classificationIndustrial?: number;
+  explanationCount?: number;
   highRisk?: number;
   isLive?: boolean;
   noaa20?: number;
@@ -28,6 +29,7 @@ export function StatsCards({
   fusionPartial = 0,
   classificationCount = 0,
   classificationIndustrial = 0,
+  explanationCount = 0,
   highRisk = 0,
   isLive = true,
   noaa20 = 0,
@@ -35,7 +37,7 @@ export function StatsCards({
 }: StatsCardsProps) {
   if (isLive) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 p-4 z-10 w-full">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 gap-2.5 p-4 z-10 w-full">
         <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
           <div className="p-2.5 bg-red-100 text-red-600 rounded-full shrink-0">
             <Flame size={22} />
@@ -123,6 +125,21 @@ export function StatsCards({
                   {classificationIndustrial} IND
                 </span>
               )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-lg shadow border border-gray-200 flex items-center gap-3.5">
+          <div className="p-2.5 bg-amber-100 text-amber-700 rounded-full shrink-0">
+            <Sparkles size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-amber-800 font-semibold uppercase tracking-wider truncate">Phase 9 • Explained</p>
+            <div className="flex items-baseline gap-1.5">
+              <p className="text-xl font-black text-amber-950">{explanationCount}</p>
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                SHAP
+              </span>
             </div>
           </div>
         </div>

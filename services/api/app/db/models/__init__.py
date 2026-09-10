@@ -2,6 +2,7 @@ from app.db.models.classification import (
     ThermalClassificationLabelModel,
     ThermalClassificationPredictionModel,
 )
+from app.db.models.explainability import ThermalClassificationExplanationModel
 from app.db.models.feature_fusion_profile import ThermalFeatureFusionProfileModel
 from app.db.models.firms_coverage import FIRMSDataCoverageModel
 from app.db.models.industrial_context_profile import IndustrialContextProfileModel
@@ -26,4 +27,5 @@ __all__ = [
     "ThermalFeatureFusionProfileModel",
     "ThermalClassificationLabelModel",
     "ThermalClassificationPredictionModel",
+    "ThermalClassificationExplanationModel",
 ]

@@ -1045,4 +1045,189 @@ export const apiService = {
     const response = await apiClient.get<ClassificationModelMetadataResponse>('/classification/model');
     return response.data;
   },
+
+  // ---------------------------------------------------------------------------
+  // Phase 9: Model Explainability Engine
+  // ---------------------------------------------------------------------------
+
+  async getObservationExplanation(observationId: string): Promise<LocalExplanationResponse> {
+    const response = await apiClient.get<LocalExplanationResponse>(`/observations/${observationId}/explanation`);
+    return response.data;
+  },
+
+  async getBatchExplanations(observationIds: string[]): Promise<BatchExplanationResponse> {
+    const CHUNK_SIZE = 500;
+
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<BatchExplanationResponse>('/explanations/batch', {
+        observation_ids: observationIds,
+      });
+      return response.data;
+    }
+
+    const mergedExplanations: Record<string, LocalExplanationResponse> = {};
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<BatchExplanationResponse>('/explanations/batch', {
+          observation_ids: chunk,
+        });
+        if (response.data?.explanations) {
+          Object.assign(mergedExplanations, response.data.explanations);
+        }
+      } catch (chunkErr) {
+        console.warn(`[Phase 9 Batch Explanations] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      explanation_version: 'agnidrishti_explainer_v1',
+      count: Object.keys(mergedExplanations).length,
+      explanations: mergedExplanations,
+    };
+  },
+
+  async syncExplanations(params: {
+    observation_ids: string[];
+    force_recompute?: boolean;
+  }): Promise<SyncExplanationResponse> {
+    const CHUNK_SIZE = 500;
+    const observationIds = params.observation_ids;
+
+    if (observationIds.length <= CHUNK_SIZE) {
+      const response = await apiClient.post<SyncExplanationResponse>('/explanations/sync', params);
+      return response.data;
+    }
+
+    let created = 0;
+    let updated = 0;
+    let reused = 0;
+    let available = 0;
+    let insufficient = 0;
+    let duration_ms = 0;
+    let database_queries = 0;
+
+    for (let i = 0; i < observationIds.length; i += CHUNK_SIZE) {
+      const chunk = observationIds.slice(i, i + CHUNK_SIZE);
+      try {
+        const response = await apiClient.post<SyncExplanationResponse>('/explanations/sync', {
+          observation_ids: chunk,
+          force_recompute: params.force_recompute,
+        });
+        const d = response.data;
+        created += d.created;
+        updated += d.updated;
+        reused += d.reused;
+        available += d.available;
+        insufficient += d.insufficient_evidence;
+        duration_ms += d.duration_ms;
+        database_queries += d.database_queries;
+      } catch (chunkErr) {
+        console.warn(`[Phase 9 Sync Explanation] Chunk ${i / CHUNK_SIZE + 1} warning:`, chunkErr);
+      }
+    }
+
+    return {
+      requested: observationIds.length,
+      created,
+      updated,
+      reused,
+      available,
+      insufficient_evidence: insufficient,
+      duration_ms: Math.round(duration_ms * 100) / 100,
+      database_queries,
+    };
+  },
+
+  async getGlobalExplanation(): Promise<GlobalExplanationResponse> {
+    const response = await apiClient.get<GlobalExplanationResponse>('/explanations/global');
+    return response.data;
+  },
 };
+
+// -----------------------------------------------------------------------------
+// Phase 9 TypeScript Interfaces
+// -----------------------------------------------------------------------------
+
+export interface FeatureContributionItem {
+  feature_name: string;
+  display_name: string;
+  feature_group: string;
+  raw_value: string | number | boolean | null;
+  display_value: string;
+  unit: string;
+  contribution: number;
+  relative_strength: number;
+  direction: 'SUPPORTS' | 'OPPOSES' | 'NEUTRAL' | string;
+  rank: number;
+}
+
+export interface GroupContributionItem {
+  group: string;
+  total_contribution: number;
+  relative_strength: number;
+  direction: 'SUPPORTS' | 'OPPOSES' | 'NEUTRAL' | string;
+  contribution_level: 'HIGH_CONTRIBUTION' | 'MEDIUM_CONTRIBUTION' | 'LOW_CONTRIBUTION' | string;
+  feature_count: number;
+}
+
+export interface LocalExplanationResponse {
+  observation_id: string;
+  explanation_status: 'AVAILABLE' | 'INSUFFICIENT_EVIDENCE' | string;
+  predicted_class?: string | null;
+  prediction_score?: number | null;
+  model_version: string;
+  validation_status: string;
+  explanation_version: string;
+  method: string;
+  feature_coverage?: number | null;
+  base_value?: number | null;
+  explained_output?: number | null;
+  additivity_error?: number | null;
+  top_supporting_features: FeatureContributionItem[];
+  top_opposing_features: FeatureContributionItem[];
+  group_contributions: Record<string, GroupContributionItem>;
+  quality_flags: string[];
+  generated_at: string;
+}
+
+export interface BatchExplanationResponse {
+  explanation_version: string;
+  count: number;
+  explanations: Record<string, LocalExplanationResponse>;
+}
+
+export interface SyncExplanationResponse {
+  requested: number;
+  created: number;
+  updated: number;
+  reused: number;
+  available: number;
+  insufficient_evidence: number;
+  duration_ms: number;
+  database_queries: number;
+}
+
+export interface GlobalFeatureImportanceItem {
+  feature_name: string;
+  display_name: string;
+  feature_group: string;
+  importance_mean: number;
+  importance_std: number;
+  rank: number;
+}
+
+export interface GlobalExplanationResponse {
+  model_version: string;
+  explanation_version: string;
+  validation_status: string;
+  scoring_metric: string;
+  dataset_fingerprint: string;
+  top_features: GlobalFeatureImportanceItem[];
+  feature_groups: Record<string, number>;
+  computed_at: string;
+  random_seed: number;
+  evaluation_split: string;
+  evaluation_samples?: number;
+}

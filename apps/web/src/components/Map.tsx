@@ -80,7 +80,7 @@ export default function Map({
       </MapContainer>
 
       {/* Map Intelligence Legend */}
-      <div className="absolute bottom-6 left-6 z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/60 rounded-xl p-3 shadow-2xl text-xs text-slate-200 select-none space-y-3">
+      <div className="absolute bottom-4 left-[260px] lg:left-[270px] z-[1000] pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/60 rounded-xl p-3 shadow-2xl text-xs text-slate-200 select-none space-y-3">
         <div>
           <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse"></span>

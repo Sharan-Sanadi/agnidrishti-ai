@@ -1,5 +1,26 @@
 import { useState } from 'react';
-import { X, Satellite, Flame, Clock, Compass, Hash, Database, History, Factory, Building2, MapPin, Trees, Layers, BrainCircuit } from 'lucide-react';
+import {
+  X,
+  Satellite,
+  Flame,
+  Clock,
+  Compass,
+  Hash,
+  Database,
+  History,
+  Factory,
+  Building2,
+  MapPin,
+  Trees,
+  Layers,
+  BrainCircuit,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
+  Scale,
+  CheckCircle2,
+} from 'lucide-react';
 import {
   AnalysisResponse,
   ThermalObservation,
@@ -9,6 +30,7 @@ import {
   SentinelContextProfileResponse,
   FusionProfileResponse,
   ClassificationPredictionResponse,
+  LocalExplanationResponse,
   apiService,
 } from '../services/api';
 
@@ -21,9 +43,11 @@ interface AnalysisDrawerProps {
   sentinelProfile?: SentinelContextProfileResponse | null;
   fusionProfile?: FusionProfileResponse | null;
   classificationProfile?: ClassificationPredictionResponse | null;
+  explanationProfile?: LocalExplanationResponse | null;
   loading: boolean;
   onClose: () => void;
   onSyncSentinel?: (observationId: string) => Promise<void>;
+  onSyncExplanation?: (observationId: string) => Promise<void>;
 }
 
 export function AnalysisDrawer({
@@ -35,9 +59,11 @@ export function AnalysisDrawer({
   sentinelProfile,
   fusionProfile,
   classificationProfile,
+  explanationProfile,
   loading,
   onClose,
   onSyncSentinel,
+  onSyncExplanation,
 }: AnalysisDrawerProps) {
   const [previewMode, setPreviewMode] = useState<'true_color' | 'swir_context'>('true_color');
 
@@ -1081,6 +1107,244 @@ export function AnalysisDrawer({
                 <p className="text-[10px] text-slate-400 mt-0.5">
                   Execute Sync Classification in dashboard to run model inference for this observation.
                 </p>
+              </div>
+            )}
+          </div>
+
+          {/* Phase 9: Model Explainability Engine (TreeSHAP) */}
+          <div className="bg-amber-50/70 rounded-lg p-4 border border-amber-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles size={15} className="text-amber-600" /> Model Explainability • SHAP (Phase 9)
+              </span>
+              {explanationProfile ? (
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                    explanationProfile.explanation_status === 'AVAILABLE'
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                  }`}>
+                    {explanationProfile.explanation_status}
+                  </span>
+                  <span className="text-[9px] font-mono font-bold bg-amber-200/80 text-amber-950 px-1.5 py-0.5 rounded">
+                    {explanationProfile.method || 'TreeSHAP'}
+                  </span>
+                </div>
+              ) : (
+                <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-semibold px-2 py-0.5 rounded">
+                  Pending
+                </span>
+              )}
+            </div>
+
+            {explanationProfile ? (
+              <div className="space-y-3">
+                {/* Target Archetype & Log-Odds Margin */}
+                <div className="bg-white p-3 rounded-md border border-amber-100">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] text-amber-800 font-bold uppercase tracking-wider block">
+                        Explained Target Archetype
+                      </span>
+                      <p className="font-black text-slate-900 text-sm mt-0.5">
+                        {explanationProfile.predicted_class
+                          ? explanationProfile.predicted_class.replace(/_/g, ' ')
+                          : 'Unclassified / Ambiguous'}
+                      </p>
+                    </div>
+                    {explanationProfile.prediction_score != null && (
+                      <span className="text-xs font-mono font-bold bg-amber-100 text-amber-900 px-2 py-0.5 rounded border border-amber-200">
+                        {(explanationProfile.prediction_score * 100).toFixed(0)}% Score
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Additivity Verification Box */}
+                  <div className="mt-2.5 pt-2 border-t border-amber-50 space-y-1.5">
+                    <div className="flex items-center justify-between text-[10.5px]">
+                      <span className="text-slate-500 font-medium flex items-center gap-1">
+                        <Scale size={11} className="text-amber-600" />
+                        Mathematical Additivity:
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 font-bold flex items-center gap-1">
+                        <CheckCircle2 size={10} />
+                        |Δ| = {Math.abs(explanationProfile.additivity_error ?? 0).toFixed(4)} (&lt; 0.01)
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10.5px] bg-amber-50/50 p-1.5 rounded border border-amber-100/60 font-mono">
+                      <div>
+                        <span className="text-slate-400 block text-[9px]">Base Value (f₀)</span>
+                        <span className="font-bold text-slate-700">
+                          {explanationProfile.base_value != null ? explanationProfile.base_value.toFixed(3) : 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block text-[9px]">Model Margin f(x)</span>
+                        <span className="font-bold text-slate-700">
+                          {explanationProfile.explained_output != null ? explanationProfile.explained_output.toFixed(3) : 'N/A'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Supporting Features (Positive SHAP push towards class) */}
+                {explanationProfile.top_supporting_features && explanationProfile.top_supporting_features.length > 0 && (
+                  <div className="bg-white p-3 rounded-md border border-emerald-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-emerald-900 uppercase tracking-wider flex items-center gap-1 text-[10.5px]">
+                        <TrendingUp size={13} className="text-emerald-600" />
+                        Top Supporting Evidence (+SHAP)
+                      </span>
+                      <span className="text-[9.5px] text-emerald-700 font-semibold">
+                        Pushes toward class
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      {explanationProfile.top_supporting_features.slice(0, 4).map((feat) => (
+                        <div key={feat.feature_name} className="space-y-1">
+                          <div className="flex justify-between items-baseline text-[10.5px]">
+                            <div className="min-w-0 max-w-[210px]">
+                              <span className="font-bold text-slate-800 truncate block" title={feat.display_name}>
+                                {feat.display_name}
+                              </span>
+                              <span className="text-[9.5px] text-slate-500 block">
+                                Value: <span className="font-medium text-slate-700">{feat.display_value}</span> {feat.unit}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-600 text-xs shrink-0">
+                              +{feat.contribution.toFixed(3)}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.max(feat.relative_strength * 100, 4)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Top Opposing Features (Negative SHAP push away from class) */}
+                {explanationProfile.top_opposing_features && explanationProfile.top_opposing_features.length > 0 && (
+                  <div className="bg-white p-3 rounded-md border border-rose-100 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1 text-[10.5px]">
+                        <TrendingDown size={13} className="text-rose-600" />
+                        Top Opposing Evidence (-SHAP)
+                      </span>
+                      <span className="text-[9.5px] text-rose-700 font-semibold">
+                        Pushes away from class
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 pt-1">
+                      {explanationProfile.top_opposing_features.slice(0, 3).map((feat) => (
+                        <div key={feat.feature_name} className="space-y-1">
+                          <div className="flex justify-between items-baseline text-[10.5px]">
+                            <div className="min-w-0 max-w-[210px]">
+                              <span className="font-bold text-slate-800 truncate block" title={feat.display_name}>
+                                {feat.display_name}
+                              </span>
+                              <span className="text-[9.5px] text-slate-500 block">
+                                Value: <span className="font-medium text-slate-700">{feat.display_value}</span> {feat.unit}
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-rose-600 text-xs shrink-0">
+                              {feat.contribution.toFixed(3)}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-rose-500 rounded-full transition-all duration-300"
+                              style={{ width: `${Math.max(feat.relative_strength * 100, 4)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Domain Group Contributions Breakdown */}
+                {explanationProfile.group_contributions && Object.keys(explanationProfile.group_contributions).length > 0 && (
+                  <div className="bg-white p-3 rounded-md border border-amber-100 space-y-2">
+                    <span className="text-[10px] text-amber-800 font-bold uppercase tracking-wider block">
+                      Domain Group Contribution Breakdown
+                    </span>
+                    <div className="space-y-1.5">
+                      {Object.entries(explanationProfile.group_contributions).map(([grp, item]) => {
+                        const isSupp = item.direction === 'SUPPORTS';
+                        return (
+                          <div key={grp} className="space-y-0.5">
+                            <div className="flex justify-between text-[10.5px]">
+                              <span className="text-slate-700 font-semibold">
+                                {grp.replace('_', ' ')} ({item.feature_count} features)
+                              </span>
+                              <span className={`font-mono font-bold ${isSupp ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {isSupp ? '+' : ''}{item.total_contribution.toFixed(3)}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  isSupp ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
+                                style={{ width: `${Math.max(item.relative_strength * 100, 3)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quality Flags & Model Metadata */}
+                <div className="bg-white p-2.5 rounded-md border border-amber-100 text-xs space-y-1.5">
+                  <div className="flex justify-between items-center text-[10.5px]">
+                    <span className="text-slate-500">Explainer Model:</span>
+                    <span className="font-mono font-semibold text-slate-700">{explanationProfile.model_version}</span>
+                  </div>
+                  {explanationProfile.quality_flags && explanationProfile.quality_flags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {explanationProfile.quality_flags.map((flag) => (
+                        <span key={flag} className="text-[9px] font-mono bg-amber-50 text-amber-800 px-1.5 py-0.2 rounded border border-amber-200">
+                          {flag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Scientific Notice */}
+                <div className="p-2 bg-amber-100/60 rounded border border-amber-200 text-[10px] text-amber-900 leading-tight space-y-1">
+                  <p>
+                    <span className="font-bold">Scientific Notice:</span> Phase 9 TreeSHAP local attributions decompose the log-odds margin of the frozen classifier into additive feature components. It explains archetype attribution without modifying model weights.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-center text-slate-500 space-y-2">
+                <Sparkles size={20} className="mx-auto text-amber-500 mb-1" />
+                <p className="font-semibold text-slate-700">SHAP Explanation Not Synced</p>
+                <p className="text-[10px] text-slate-400">
+                  Execute Sync SHAP in dashboard to compute local TreeSHAP attributions for this observation.
+                </p>
+                {onSyncExplanation && hotspot?.id && (
+                  <button
+                    onClick={() => onSyncExplanation(hotspot.id)}
+                    className="mt-1 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10.5px] font-bold transition-colors inline-flex items-center gap-1"
+                  >
+                    <Sparkles size={12} />
+                    Compute Observation SHAP
+                  </button>
+                )}
               </div>
             )}
           </div>

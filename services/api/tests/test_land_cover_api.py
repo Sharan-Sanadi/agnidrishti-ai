@@ -9,11 +9,12 @@ Verifies:
 """
 
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
 
+from app.db.session import get_db
 from app.main import app
 from app.providers.worldcover.client import WorldCoverClient
 
@@ -53,9 +54,20 @@ def test_batch_limit_500_allowed():
 
 def test_get_observation_not_found_404():
     """Verify 404 returned when observation ID does not exist in canonical store."""
-    response = client.get("/api/v1/observations/nonexistent_observation_id_9999/land-cover")
-    assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    async def mock_override_db():
+        mock_session = AsyncMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+        yield mock_session
+
+    app.dependency_overrides[get_db] = mock_override_db
+    try:
+        response = client.get("/api/v1/observations/nonexistent_observation_id_9999/land-cover")
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
