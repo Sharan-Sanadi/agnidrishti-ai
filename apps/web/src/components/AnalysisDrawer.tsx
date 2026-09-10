@@ -17,7 +17,6 @@ import {
   Sparkles,
   TrendingUp,
   TrendingDown,
-  ShieldCheck,
   Scale,
   CheckCircle2,
 } from 'lucide-react';
@@ -36,7 +35,7 @@ import {
 
 interface AnalysisDrawerProps {
   hotspot: ThermalObservation | null;
-  analysis: AnalysisResponse | null;
+  analysis?: AnalysisResponse | null;
   persistenceProfile?: PersistenceProfileResponse | null;
   industrialContextProfile?: IndustrialContextProfileResponse | null;
   landCoverProfile?: LandCoverProfileResponse | null;
@@ -44,7 +43,7 @@ interface AnalysisDrawerProps {
   fusionProfile?: FusionProfileResponse | null;
   classificationProfile?: ClassificationPredictionResponse | null;
   explanationProfile?: LocalExplanationResponse | null;
-  loading: boolean;
+  loading?: boolean;
   onClose: () => void;
   onSyncSentinel?: (observationId: string) => Promise<void>;
   onSyncExplanation?: (observationId: string) => Promise<void>;
@@ -52,7 +51,6 @@ interface AnalysisDrawerProps {
 
 export function AnalysisDrawer({
   hotspot,
-  analysis,
   persistenceProfile,
   industrialContextProfile,
   landCoverProfile,
@@ -60,7 +58,6 @@ export function AnalysisDrawer({
   fusionProfile,
   classificationProfile,
   explanationProfile,
-  loading,
   onClose,
   onSyncSentinel,
   onSyncExplanation,

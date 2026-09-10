@@ -6,7 +6,6 @@ import {
   apiService,
   ThermalObservation,
   AnalysisResponse,
-  FIRMSHotspotsResponse,
   PersistenceProfileResponse,
   IndustrialContextProfileResponse,
   LandCoverProfileResponse,
@@ -45,10 +44,9 @@ type SentinelFilter = 'all' | 'evaluated' | 'clear' | 'cloud_limited' | 'recent'
 type FusionFilter = 'all' | 'complete' | 'partial' | 'evaluated';
 type ClassificationFilter = 'all' | 'industrial' | 'agricultural' | 'natural' | 'built_non_industrial' | 'mixed' | 'insufficient';
 type ExplanationFilter = 'all' | 'available' | 'insufficient' | 'tree_shap';
-type FixtureFilter = 'all' | 'industrial' | 'persistent';
 
 export function Dashboard() {
-  const [dataMode, setDataMode] = useState<DataMode>('live');
+  const [dataMode] = useState<DataMode>('live');
   const [hotspots, setHotspots] = useState<ThermalObservation[]>([]);
   const [selectedHotspot, setSelectedHotspot] = useState<ThermalObservation | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
@@ -90,11 +88,9 @@ export function Dashboard() {
 
 
   const [loading, setLoading] = useState(true);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Live FIRMS Metadata
-  const [firmsMeta, setFirmsMeta] = useState<FIRMSHotspotsResponse | null>(null);
   const [liveFilter, setLiveFilter] = useState<LiveFilter>('all');
   const [dayRange, setDayRange] = useState<number>(1);
 
@@ -103,9 +99,6 @@ export function Dashboard() {
   const [isPostgisBacked, setIsPostgisBacked] = useState<boolean>(false);
   const [totalStored, setTotalStored] = useState<number | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
-
-  // Phase 0 Fixture Filter
-  const [fixtureFilter, setFixtureFilter] = useState<FixtureFilter>('all');
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -241,7 +234,6 @@ export function Dashboard() {
             });
             if (!isMounted) return;
 
-            setFirmsMeta(response);
             const mapped: ThermalObservation[] = response.observations.map((obs) => ({
               ...obs,
               stored_in_postgis: false,
@@ -252,7 +244,6 @@ export function Dashboard() {
           }
         } else {
           setHotspots([]);
-          setFirmsMeta(null);
           setIsPostgisBacked(false);
           setErrorMessage(null);
         }
@@ -663,8 +654,6 @@ export function Dashboard() {
 
       return true;
     } else {
-      if (fixtureFilter === 'industrial') return false;
-      if (fixtureFilter === 'persistent') return false;
       return true;
     }
   });
@@ -1187,7 +1176,6 @@ export function Dashboard() {
           fusionProfile={selectedHotspot ? fusionMap[selectedHotspot.id] : null}
           classificationProfile={selectedHotspot ? classificationMap[selectedHotspot.id] : null}
           explanationProfile={selectedHotspot ? explanationMap[selectedHotspot.id] : null}
-          loading={loadingAnalysis}
           onClose={handleCloseDrawer}
           onSyncSentinel={handleSyncSentinel}
           onSyncExplanation={handleSyncSingleExplanation}

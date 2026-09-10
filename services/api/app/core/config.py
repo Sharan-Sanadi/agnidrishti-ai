@@ -123,7 +123,7 @@ class Settings(BaseSettings):
     google_application_credentials: str = ""
 
     # ─── CORS ───
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     # ─── Provider readiness helpers ───
     @property

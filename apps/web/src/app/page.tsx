@@ -1,9 +1,5 @@
-import { Dashboard } from '../components/Dashboard';
+import { LandingPage } from '../components/landing/LandingPage';
 
 export default function Home() {
-  return (
-    <main className="w-full h-screen">
-      <Dashboard />
-    </main>
-  );
+  return <LandingPage />;
 }
