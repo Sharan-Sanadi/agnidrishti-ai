@@ -1,9 +1,47 @@
 # AGNIDRISHTI API — Shared Pytest Fixtures
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+
+
+@pytest.fixture(autouse=True)
+def mock_db_when_unconfigured():
+    """
+    Ensures API route parameter validation, 404 handlers, and schemas can be tested
+    cleanly in offline/CI unit tests when DATABASE_URL is unconfigured, without 503 errors.
+    """
+    settings = get_settings()
+    if not settings.is_database_configured:
+        from app.db.session import get_db
+        from app.main import app
+
+        if get_db not in app.dependency_overrides:
+            async def _mock_get_db():
+                session = AsyncMock(spec=AsyncSession)
+                mock_res = MagicMock()
+                mock_res.scalar_one_or_none.return_value = None
+                mock_res.scalars.return_value.all.return_value = []
+                mock_res.scalars.return_value.first.return_value = None
+                mock_res.fetchall.return_value = []
+                session.execute = AsyncMock(return_value=mock_res)
+                session.commit = AsyncMock()
+                session.rollback = AsyncMock()
+                session.flush = AsyncMock()
+                yield session
+
+            app.dependency_overrides[get_db] = _mock_get_db
+            try:
+                yield
+            finally:
+                app.dependency_overrides.pop(get_db, None)
+        else:
+            yield
+    else:
+        yield
 
 
 @pytest.fixture
@@ -41,3 +79,4 @@ async def db_session():
                 await session.rollback()
 
     await engine.dispose()
+

@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy import select
 
+from app.core.config import get_settings
 from app.db.models.classification import ThermalClassificationPredictionModel
 from app.db.session import get_session_factory
 from app.main import app
@@ -88,6 +89,10 @@ def test_api_sync_explanation_501_rejected_with_422() -> None:
 @pytest.mark.asyncio
 async def test_sync_explanations_idempotency_and_persistence() -> None:
     """Verify that syncing explanations creates records first and reuses them on second sync."""
+    settings = get_settings()
+    if not settings.is_database_configured:
+        pytest.skip("DATABASE_URL not configured; skipping real PostGIS integration test.")
+
     factory = get_session_factory()
     async with factory() as session:
         # Fetch 5 real observation IDs that have Phase-8 predictions
