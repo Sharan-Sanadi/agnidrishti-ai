@@ -24,6 +24,18 @@ By fusing near-real-time satellite infrared observations (NASA VIIRS 375m) with 
 
 ---
 
+## 🎥 Project Demo
+
+Watch AgniDrishti demonstrate its geospatial thermal-intelligence workflow — from thermal hotspot visualization and contextual analysis to classification, explainability, and monitoring.
+
+[![AgniDrishti Project Demo](https://img.youtube.com/vi/Wp_z4IQJa88/maxresdefault.jpg)](https://youtu.be/Wp_z4IQJa88)
+
+▶️ Click the preview above to watch the complete AgniDrishti project demo.
+
+YouTube: https://youtu.be/Wp_z4IQJa88
+
+---
+
 ## 🎯 Problem
 
 Satellite infrared sensors detect thermal radiation across the Earth's surface daily, but **thermal anomaly detection alone does not reveal context or cause**:
