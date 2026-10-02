@@ -596,6 +596,7 @@ The report contains:
 
 - **Sharan Sanadi** ([@Sharan-Sanadi](https://github.com/Sharan-Sanadi)) — `sharansanadi2006@gmail.com`
 - **Omkar Biradarpatil** ([@OmkarBiradarpatil](https://github.com/OmkarBiradarpatil))
+- **Sagar N M** ([@sagarnm248](https://github.com/saganm248)) — `sagarnm248@gmail.com`
 
 ---
 
